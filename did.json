@@ -1,0 +1,12 @@
+{
+  "id": "did:iota:test1",
+  "controller": "did:iota:root",
+  "proof": "R0R\\xe0\\x04#\\xa1\\x1f '\\x04/\\xb8\\x96m\\xd3\\xa4\\xda\\xa2\\xe4\\xacG\\xc0j\\xf0\\xd1/\\xdfYIl\\xbdx\\xd4!#&\\xc5\\x8b\\xb3\\x18\\t\\x1b#m\\xd0\\xf4\\x8b\\x99I\\xfa\\xc6\\x15\\xe2\\xfe\\x0e^Rkf\\x9f\\x9a\\xf9\\n",
+
+  "verificationMethod": [{
+    "id": "did:iota:test1/path",
+    "type": "Ed25519VerificationKey2018",
+    "controller": "did:iota:root",
+    "publicKeyBinary": "BLCRDS-ADUJVH-DYMFN3-KV5U27-D5JXFZ-DCRFMS-RGV6OU-CQXBSY"
+  }]
+}
