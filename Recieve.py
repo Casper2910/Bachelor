@@ -1,19 +1,31 @@
 import socket
 
-# Set up the socket
-HOST = '0.0.0.0'   # Listen on all network interfaces
-PORT = 12345       # Port to listen on
-BUFFER_SIZE = 1024
+# Define the IP address and port to listen on
+HOST = '192.168.0.133'  # Replace with your server's IP address
+PORT = 8080  # Replace with your desired port number
 
-# Create a UDP socket
-with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+# Create a socket object
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
     # Bind the socket to the address and port
-    s.bind((HOST, PORT))
-    print("UDP server started. Listening for incoming UDP packets...")
+    server_socket.bind((HOST, PORT))
 
-    # Receive and print data continuously
+    # Start listening for incoming connections
+    server_socket.listen()
+    print(f"Server listening on {HOST}:{PORT}")
+
+    # Accept incoming connection
+    client_socket, client_address = server_socket.accept()
+    print(f"Connection from {client_address}")
+
+    # Receive data from the client
+    received_data = b""
     while True:
-        data, addr = s.recvfrom(BUFFER_SIZE)
-        if data:
-            temperature = data.decode()   # Convert received data to string
-            print(f"Received temperature: {temperature}")
+        chunk = client_socket.recv(1024)
+        if not chunk:
+            break
+        received_data += chunk
+
+        # Decode received data
+        received_json = received_data.decode("utf-8")
+        print("Received JSON data:")
+        print(received_json)
