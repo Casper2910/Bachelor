@@ -1,53 +1,69 @@
-#include <WiFiNINA.h>              // Include the WiFi library
-#include <SPI.h>                   // Include the SPI library
-#include <Arduino_MKRIoTCarrier.h> // Include the MKRIoTCarrier library
+#include <WiFiNINA.h>
+#include <ArduinoJson.h>
 
-char ssid[] = "wifi";          // Your WiFi SSID
-char pass[] = "pass";       // Your WiFi password
-unsigned int localPort = 12345;    // Local port to listen on
+char ssid[] = "wifi";      // your network SSID (name)
+char pass[] = "pass";   // your network password
+int status = WL_IDLE_STATUS;          // the WiFi status
 
-MKRIoTCarrier carrier;
-WiFiUDP udp;                       // Create a UDP instance
+IPAddress server(192, 168, 0, 133);   // IP address of the target device
+int port = 8080;                        // port of the target device
+
+WiFiClient client;
 
 void setup() {
-  carrier.begin();
-  Serial.begin(9600);              // Initialize serial communication
+  Serial.begin(9600);
 
-  // Attempt to connect to WiFi network
-  while (WiFi.begin(ssid, pass) != WL_CONNECTED) {
-    Serial.println("Attempting to connect to WiFi...");
-    delay(5000);                   // Retry every 5 seconds if connection fails
+  // attempt to connect to WiFi network
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(ssid);
+    status = WiFi.begin(ssid, pass);
+    delay(5000);  // wait 5 seconds for connection
   }
-
   Serial.println("Connected to WiFi");
 
-  // Begin UDP communication
-  udp.begin(localPort);
-  Serial.println("UDP server started");
+  // Connect to server
+  Serial.print("Attempting to connect to server: ");
+  Serial.println(server);
+  if (client.connect(server, port)) {
+    Serial.println("Connected to server");
+  } else {
+    Serial.println("Connection failed");
+  }
 }
 
 void loop() {
-  // Read temperature from sensor on the MKR IoT Carrier board
-  float temperature = carrier.Env.readTemperature();
+  if (client.connected()) {
+    // Create a JSON object
+    StaticJsonDocument<400> jsonDocument; // Adjust buffer size as needed
+    jsonDocument["id"] = "did:iota:test1";
+    jsonDocument["controller"] = "did:iota:root";
+    jsonDocument["proof"] = "NEEDS_PROOF";
 
-  // Print temperature to serial monitor
-  Serial.print("Temperature: ");
-  Serial.println(temperature);
+    // Create a nested JSON object
+    JsonObject verificationMethod = jsonDocument.createNestedObject("verificationMethod");
+    verificationMethod["id"] = "did:iota:test1/path";
+    verificationMethod["type"] = "Ed25519VerificationKey2018";
+    verificationMethod["controller"] = "did:iota:root";
+    verificationMethod["publicKeyBinary"] = "";
 
-  // Broadcast temperature data using UDP
-  sendDataOverUDP(temperature);
+    // Serialize JSON object to a string
+    String jsonString;
+    serializeJson(jsonDocument, jsonString);
 
-  delay(5000); // Delay for 5 seconds before next reading
-}
+    // Send JSON string to server
+    client.println(jsonString);
+    Serial.println("JSON message sent to server: " + jsonString);
 
-void sendDataOverUDP(float temp) {
-  // Broadcast temperature data over UDP
-  Serial.println("Sending data over UDP...");
-
-  IPAddress broadcastIP(255, 255, 255, 255); // Broadcast address for all devices on the network
-  udp.beginPacket(broadcastIP, localPort);
-  udp.print(temp);
-  udp.endPacket();
-
-  Serial.println("Data sent over UDP");
+    // Wait a bit before sending the next message
+    delay(5000);
+  } else {
+    // If the connection is lost, attempt to reconnect
+    Serial.println("Connection lost. Reconnecting...");
+    if (client.connect(server, port)) {
+      Serial.println("Reconnected to server");
+    } else {
+      Serial.println("Reconnection failed");
+    }
+  }
 }
