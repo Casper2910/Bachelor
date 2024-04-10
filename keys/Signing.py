@@ -27,14 +27,14 @@ def verify_proof(signature, public_key, identifier):
         return False
 
 
-def give_proof(data):
+def give_proof(data, ):
     response = ''
 
     answer = input(f"Do you want to deliver proof for ID: {data['id']}? (Yes/No): ").lower()
 
     if answer == 'yes':
         # Call the sign_proof function
-        data['proof'] = sign_proof(data['id'])
+        data['proof'] = sign_proof(data['id'], )
         response = f'proof delivered for {data['id']}'
     else:
         response = f'"Proof declined for {data['id']}'
