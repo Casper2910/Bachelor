@@ -1,0 +1,1 @@
+id_dict = {1: 'did:test:test123', 2: 'did:test:test12345'}
