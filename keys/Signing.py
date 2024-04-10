@@ -1,9 +1,8 @@
 from cryptography.hazmat.primitives.serialization import load_ssh_private_key, load_ssh_public_key
 import multibase
-from keys import private_key, public_key
 
 
-def sign_proof(identifier):
+def sign_proof(identifier, private_key, public_key):
     # Load the private key
     private_key_object = load_ssh_private_key(private_key, password=None, )
 
@@ -26,6 +25,21 @@ def verify_proof(signature, public_key, identifier):
         return True
     except Exception as e:
         return False
+
+
+def give_proof(data):
+    response = ''
+
+    answer = input(f"Do you want to deliver proof for ID: {data['id']}? (Yes/No): ").lower()
+
+    if answer == 'yes':
+        # Call the sign_proof function
+        data['proof'] = sign_proof(data['id'])
+        response = f'proof delivered for {data['id']}'
+    else:
+        response = f'"Proof declined for {data['id']}'
+
+    return response
 
 
 # Example usage

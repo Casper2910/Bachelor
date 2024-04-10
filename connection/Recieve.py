@@ -2,32 +2,14 @@ import socket
 import json
 from threading import Thread
 from keys.Signing import sign_proof
+from iota.block_handler import upload_block, retrieve_block_data
+from block_id_dictonary.write_read_dict import find_id, insert_entry
 
 # Define the IP address and port to listen on
 HOST = '192.168.0.133'  # Replace with your server's IP address
 PORT = 8080  # Replace with your desired port number
 
 
-def handle_proof(data):
-    # Check if 'proof' == 'NEEDS_PROOF'
-    response = ''
-
-    if 'proof' in data and data['proof'] == 'NEEDS_PROOF':
-        # Ask the user if they want to deliver proof
-        answer = input(f"Do you want to deliver proof for ID: {data['id']}? (Yes/No): ").lower()
-
-        if answer == 'yes':
-            # Call the sign_proof function
-            data['proof'] = sign_proof(data['id'])
-            response = f'proof delivered for {data['id']}'
-
-        else:
-            response = f'"Proof declined for {data['id']}'
-
-    return response
-
-
-# Function to handle incoming connections and process data
 def handle_connection(client_socket):
     # Receive data from the client
     received_data = b""
@@ -45,25 +27,36 @@ def handle_connection(client_socket):
     # Parse received JSON
     data = json.loads(received_json)
 
-    # Process the data
-    handle_proof(data)
-
     # Close the client socket
     client_socket.close()
 
+    # Return the parsed JSON object
+    return data
 
-# Create a socket object
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-    # Bind the socket to the address and port
-    server_socket.bind((HOST, PORT))
 
-    # Start listening for incoming connections
-    server_socket.listen()
-    print(f"Server listening on {HOST}:{PORT}")
+def server(HOST, PORT):
+    # Variable to store received JSON object
+    received_json = None
 
-    # Accept incoming connections and start a new thread to handle each one
-    while True:
-        client_socket, client_address = server_socket.accept()
-        print(f"Connection from {client_address}")
-        thread = Thread(target=handle_connection, args=(client_socket,))
-        thread.start()
+    # Create a socket object
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        # Bind the socket to the address and port
+        server_socket.bind((HOST, PORT))
+
+        # Start listening for incoming connections
+        server_socket.listen()
+        print(f"Server listening on {HOST}:{PORT}")
+
+        # Accept incoming connections and start a new thread to handle each one
+        while True:
+            client_socket, client_address = server_socket.accept()
+            print(f"Connection from {client_address}")
+            # Handle the connection and get the received JSON object
+            received_json = handle_connection(client_socket)
+            # Break the loop if the received JSON object is obtained
+            if received_json:
+                break
+
+    # Return the received JSON object
+    return received_json
+
