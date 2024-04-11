@@ -9,6 +9,7 @@ from iota_sdk import Client, hex_to_utf8, utf8_to_hex
 
 load_dotenv()
 
+
 def create_client_instance():
     node_url = os.environ.get('NODE_URL', 'https://api.testnet.shimmer.network')
 
@@ -47,7 +48,6 @@ def upload_block(data):
     print(f'  data: {data_str}')
     print(f'  data converted to hex: {data_hex}')
 
-
     ########################################################
     # Step 2: Submit your block to the Shimmer test network
     ########################################################
@@ -71,7 +71,6 @@ def upload_block(data):
     return block_id
 
 
-
 ########################################################
 # Step 3: Use the block ID to read the payload back
 ########################################################
@@ -80,8 +79,8 @@ def upload_block(data):
 #   get_block_metadata - metadata only
 #   get_block_data - metadata and payload
 
-def retrieve_block_data(block_id):
 
+def retrieve_block_data(block_id):
     client = create_client_instance()
 
     # Get the metadata for the block
@@ -99,3 +98,6 @@ def retrieve_block_data(block_id):
     print(f'  {data_out}')
 
     return data_out
+
+if __name__ == "__main__":
+    retrieve_block_data('0x747cbac547661574f16900a4672d12015b2af60d3e3086129f971edc17e64c06')
