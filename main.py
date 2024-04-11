@@ -3,6 +3,7 @@ from keys.Signing import give_proof, verify_proof, sign_proof
 from block_id_dictonary.write_read_dict import insert_entry, find_id
 from iota.block_handler import upload_block, retrieve_block_data
 from keys.keys import public_key, private_key
+from id_dict import id_dict
 HOST = '192.168.0.133'  # ip
 PORT = 8080  # port
 
@@ -10,8 +11,11 @@ PORT = 8080  # port
 DID_doc = server(HOST, PORT)
 DID = DID_doc['id']
 
+print('did:', DID)
+print('did doc:', DID_doc)
+
 # check if DID document needs to be authenticated by issuer
-if DID_doc['proof'] == 'NEEDS_PROOF':
+if DID_doc['proof'] == 'NEEDS_PROOF' and DID not in id_dict.values():
 
     # give proof by signing:
     answer = input(f"Do you want to deliver proof for ID: {DID}? (Yes/No): ").lower()

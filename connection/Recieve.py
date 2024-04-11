@@ -11,33 +11,35 @@ PORT = 8080  # Replace with your desired port number
 
 
 def handle_connection(client_socket):
-    # Receive data from the client
-    received_data = b""
-    while True:
+    try:
+        # Receive data from the client
+        received_data = b""
+
         chunk = client_socket.recv(1024)
-        if not chunk:
-            break
+
         received_data += chunk
 
-    # Decode received data
-    received_json = received_data.decode("utf-8")
-    print("Received JSON data:")
-    print(received_json)
+        # Decode received data
+        received_json = received_data.decode("utf-8")
+        print("Received JSON data:")
+        print(received_json)
 
-    # Parse received JSON
-    data = json.loads(received_json)
+        # Parse received JSON
+        data = json.loads(received_json)
 
-    # Close the client socket
-    client_socket.close()
+        # Close the client socket
+        client_socket.close()
 
-    # Return the parsed JSON object
-    return data
+        # Return the parsed JSON object
+        return data
+
+    except Exception as e:
+        print("Error handling connection:", e)
+        return None
+
 
 
 def server(HOST, PORT):
-    # Variable to store received JSON object
-    received_json = None
-
     # Create a socket object
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         # Bind the socket to the address and port
@@ -59,4 +61,5 @@ def server(HOST, PORT):
 
     # Return the received JSON object
     return received_json
+
 

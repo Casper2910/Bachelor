@@ -1,1 +1,1 @@
-id_dict = {1: 'bobby', 2: 'bob'}
+id_dict = {'0x747cbac547661574f16900a4672d12015b2af60d3e3086129f971edc17e64c06': 'did:iota:test1'}

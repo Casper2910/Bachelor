@@ -1,6 +1,6 @@
 import os
 import json
-
+import base64
 from dotenv import load_dotenv
 
 # Import the python iota client
@@ -25,7 +25,15 @@ def create_client_instance():
 # This block can contain a 'payload' with data.
 # This payload has a 'tag' and the 'data' itself, both in hex format.
 # The Shimmer network requires a "0x" at the beginning of hex strings.
+
 def upload_block(data):
+    # Convert bytes data to base64 encoding
+    for key, value in data.items():
+        if isinstance(value, bytes):
+            data[key] = base64.b64encode(value).decode('utf-8')
+
+    tag = data['id']
+    tag_hex = utf8_to_hex(tag)
 
     client = create_client_instance()
 
@@ -49,7 +57,7 @@ def upload_block(data):
     # Create and post a block with a JSON data payload
     # The client returns your block data (blockIdAndBlock)
     blockIdAndBlock = client.build_and_post_block(
-        secret_manager=None, tag=None, data=data_hex)
+        secret_manager=None, tag=tag_hex, data=data_hex)
 
     block_id = blockIdAndBlock[0]
     block = blockIdAndBlock[1]
@@ -61,6 +69,7 @@ def upload_block(data):
     print(f'  {block}')
 
     return block_id
+
 
 
 ########################################################
