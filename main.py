@@ -16,7 +16,7 @@ print('did:', DID)
 print('did doc:', DID_doc)
 
 # check if DID document needs to be authenticated by issuer
-if DID_doc['proof'] == 'NEEDS_PROOF' and DID not in id_dict.values():
+if DID not in id_dict.values():
 
     # give proof by signing:
     answer = input(f"Do you want to deliver proof for ID: {DID}? (Yes/No): ").lower()
@@ -25,8 +25,8 @@ if DID_doc['proof'] == 'NEEDS_PROOF' and DID not in id_dict.values():
         # Call the sign_proof function
         proof = sign_proof(DID, private_key, public_key)
         DID_doc['proof'] = proof
-        print(proof)
-        print(DID_doc['proof'])
+        DID_doc['publicKey'] = public_key
+
         response = f'proof delivered for {DID}'
 
         # upload DID document to iota tangle
