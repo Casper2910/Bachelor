@@ -4,8 +4,8 @@
 #include <Arduino_MKRIoTCarrier.h>
 #include <ArduinoUniqueID.h>
 
-char ssid[] = "wifi";      // your network SSID (name)
-char pass[] = "pass";   // your network password
+char ssid[] = "Persille";      // your network SSID (name)
+char pass[] = "ScottsTots5";   // your network password
 int status = WL_IDLE_STATUS;          // the WiFi status
 
 IPAddress server(192, 168, 0, 133);   // IP address of the target device
@@ -14,7 +14,9 @@ int port = 8080;                        // port of the target device
 WiFiClient client;
 MKRIoTCarrier carrier;
 
-String DeviceID; // Variable for unique identifier for device
+String DID;                 // Variable for DID
+String DID_Document_String; // Variable for DID document as string
+String DeviceID;            // Variable for unique identifier for device
 
 void setup() {
   Serial.begin(9600);
@@ -43,37 +45,41 @@ void setup() {
     DeviceID += String(UniqueID[i]);
   }
 
-  // Generate hash for id based on serial number:
-  hashValue = ...
-
   // Generate DID:
-  DID = "did:iota:test" + String(hashValue);
+  DID = "did:iota:test" + DeviceID;
 
   // Create a JSON object
-    StaticJsonDocument<400> jsonDocument; // Adjust buffer size as needed
-    jsonDocument["id"] = DID;
-    jsonDocument["controller"] = "did:iota:root";
-    jsonDocument["serial"] = DeviceID;
-    jsonDocument["proof"] = "NEEDS_PROOF";
+  StaticJsonDocument<400> jsonDocument; // Adjust buffer size as needed
+  jsonDocument["id"] = DID;
+  jsonDocument["controller"] = "did:iota:root";
+  jsonDocument["serial"] = DeviceID;
+  jsonDocument["proof"] = "NEEDS_PROOF";
 
-    // Create a nested JSON object
-    JsonObject verificationMethod = jsonDocument.createNestedObject("verificationMethod");
-    verificationMethod["id"] = "did:iota:test1/path";
-    verificationMethod["type"] = "Ed25519VerificationKey2018";
-    verificationMethod["controller"] = "did:iota:root";
-    verificationMethod["publicKey"] = "";
+  // Create a nested JSON object
+  JsonObject verificationMethod = jsonDocument.createNestedObject("verificationMethod");
+  verificationMethod["id"] = "did:iota:test1/path";
+  verificationMethod["type"] = "Ed25519VerificationKey2018";
+  verificationMethod["controller"] = "did:iota:root";
+  verificationMethod["publicKey"] = "";
 
-    // Serialize JSON object to a string
-    String jsonString;
-    serializeJson(jsonDocument, jsonString);
+  // Serialize JSON object to a string
+  serializeJson(jsonDocument, DID_Document_String);
 }
 
 void loop() {
   if (client.connected()) {
+    // Create a JSON object for DID
+    StaticJsonDocument<400> jsonDID; // Adjust buffer size as needed
+    jsonDID["DID"] = DID;
+
+    // Serialize JSON object to a string
+    String jsonData;
+    serializeJson(jsonDID, jsonData);
+
     // Send JSON string to server
-    client.println(DID);
-    Serial.println("Message sent to server:" + DID);
-    delay(500)
+    client.println(jsonData);
+    Serial.println("Message sent to server:" + jsonData);
+    delay(500);
 
     String dataReceived = Serial.readStringUntil('\n'); // Read data until newline character
     // Split string into parts based on comma separator
@@ -82,12 +88,11 @@ void loop() {
     int iterationNumber = dataReceived.substring(commaIndex + 1).toInt();
 
     // Send DID document if server requests
-    if (stringData.startsWith('request-did-doc')){
-    client.println(jsonString)
-    delay(5000);
+    if (stringData.startsWith("request-did-doc")) {
+      client.println(DID_Document_String);
+      delay(5000);
+    }
 
-
-  }
     // Send temperature data to server
     client.println(carrier.Env.readTemperature());
 
