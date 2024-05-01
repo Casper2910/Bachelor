@@ -6,3 +6,5 @@ id_dict = {
     '0xff18a3551ce029cab4372cdd30aaea05de987bfc01de9034ad00b51ec301ed83': 'did:iota:test5',
     '0x9f17a5939b14ca7e0afe089191409a8cd0afc8765efd34365b06b426405c281a': 'did:iota:test6',
 }
+
+blacklist = {}

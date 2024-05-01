@@ -1,28 +1,66 @@
 from connection.Recieve import server, send_data
 from keys.Signing import verify_proof, sign_proof
-from block_id_dictonary.write_read_dict import insert_entry, find_id
+from block_id_dictonary.write_read_dict import insert_entry, find_id, is_in_blacklist, add_to_blacklist
 from iota.block_handler import upload_block, retrieve_block_data
-from keys.keys import public_key
-from id_dict import id_dict
+from keys.keys import public_key, private_key
+from id_dict import id_dict, blacklist
 import base64
-HOST = '192.168.0.133'  # ip
-PORT = 8080  # port
+from data.write import append_to_file
 
-# receives DID document from arduino
-DIDjson, arduino_ip_port = server(HOST, PORT)
+HOST = '192.168.0.151'  # own ip
+PORT = 8080  # own port
 
-print('did json:', DIDjson)
-print('did:', DIDjson['DID']) # the DID String
-DID = DIDjson['DID']
-print(arduino_ip_port)      # tuple
+ISSUER_HOST = '192.168.0.133'  # issuer ip
+ISSUER_PORT = 8080  # issuer port
+
+# receives DID from arduino
+json, arduino_ip_port = server(HOST, PORT)
+
+# Extract the DID and temperature
+DID = json['DID']
+temperature = json['temperature']
+
+print('did:', DID)  # the DID String
+print(arduino_ip_port)  # tuple
 ip, port = arduino_ip_port
 print("ip:", ip)
 print("port:", port)
 
-if DID not in id_dict.values():
+# check if the arduino is blacklisted
+if is_in_blacklist(DID):
+    pass
+
+# If DID is not verified
+elif DID not in id_dict.values():
     # Request did doc from arduino
     send_data('request-did-doc', ip, port)
 
+    # Now wait for the response from the Arduino
+    DID_doc, _ = server(HOST, PORT)
+
+    # send did to issuer
+    send_data(DID, ISSUER_HOST, ISSUER_PORT)
+
+    # Now wait for the response from the issuer
+    proof, _ = server(ISSUER_HOST, ISSUER_PORT)
+
+    # if proof is 'no', means no proof for the Arduino
+    if proof == 'no':
+        add_to_blacklist(DID)
+        pass
+
+    else:
+        # Add proof to did document and store it in iota
+        DID_doc['proof'] = proof
+        DID_doc['publicKey'] = public_key
+
+        # upload DID document to iota tangle
+        block_id = upload_block(DID_doc)
+
+        # store associated block id to the DID
+        insert_entry(block_id, DID)
+
+# If DID is verified
 elif DID in id_dict.values():
     # find associated block id for the DID
     block_id = find_id(DID)
@@ -37,5 +75,9 @@ elif DID in id_dict.values():
     # Verify proof from issuer
     if verify_proof(proof_binary, public_key, DID):
         print(f'Arduino with {DID} is verified')
+        append_to_file(DID, temperature)
     else:
         print(f'Arduino with {DID} is NOT verified')
+
+else:
+    print('ERROR')
