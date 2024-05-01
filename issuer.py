@@ -9,8 +9,8 @@ import base64
 HOST = '192.168.0.133'  # ip
 PORT = 8080  # port
 
-VERIFIER_Host = '192.168.0.151'  # raspberry pi ip
-VERIFIER_PORT = 8080  # raspberry pi port
+VERIFIER_Host = '192.168.0.133'  # raspberry pi ip
+VERIFIER_PORT = 8081  # raspberry pi port
 
 while True:
     DID = server(HOST, PORT)
