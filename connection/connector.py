@@ -74,3 +74,30 @@ def send_data(data, ip, port):
 
     except Exception as e:
         print("Error sending data to Arduino:", e)
+
+
+def receive_specific_data(socket_obj, check_ip):
+    while True:
+        try:
+            data, addr = socket_obj.recvfrom(1024)
+            ip, port = addr
+            if ip == check_ip:
+                return json.loads(data.decode())
+            else:
+                return None
+        except socket.error as e:
+            print(f"Error receiving data: {e}")
+            break
+    return None
+
+
+def receive_data(socket_obj):
+    while True:
+        try:
+            data = socket_obj.recv(1024)
+            if data:
+                return json.loads(data.decode())
+        except socket.error as e:
+            print(f"Error receiving data: {e}")
+            break
+    return None

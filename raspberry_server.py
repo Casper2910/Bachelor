@@ -2,12 +2,13 @@ import socket
 import threading
 import json
 import base64
-from connection.connector import send_data
+from connection.connector import send_data, receive_data, receive_specific_data
 from keys.Signing import verify_proof
-from block_id_dictonary.write_read_dict import insert_entry, find_id, is_in_blacklist, add_to_blacklist
+from block_id_dictonary.write_read_dict import insert_entry, find_id, is_blacklisted, add_to_blacklist
 from iota.block_handler import upload_block, retrieve_block_data
 from keys.keys import public_key
-from id_dict import id_dict, blacklist
+from id_dict import id_dict
+from blacklist import blacklist
 from data.write import append_to_file
 
 HOST = '192.168.0.133'  # own ip
@@ -17,46 +18,52 @@ ISSUER_HOST = '192.168.0.133'  # issuer ip
 ISSUER_PORT = 8080  # issuer port
 
 
-def receive_data(socket_obj):
+def handle_device(rasp_socket, ip, port):
     while True:
-        try:
-            data = socket_obj.recv(1024)
-            if data:
-                return json.loads(data.decode())
-        except socket.error as e:
-            print(f"Error receiving data: {e}")
-            break
-    return None
-
-
-def handle_device(socket_obj, ip, port):
-    while True:
-        json_data = receive_data(socket_obj)
+        json_data = receive_data(rasp_socket)
         if json_data:
             DID = json_data['DID']
             temperature = json_data['temperature']
             print('did:', DID)  # the DID String
             print(ip, port)  # tuple
-            print("ip:", ip)
-            print("port:", port)
 
-            if is_in_blacklist(DID):
+            # Arduino server dest
+            ARDUINO_HOST = ip
+            ARDUINO_PORT = port
+
+            if is_blacklisted(DID):
                 pass
-            elif DID not in id_dict.values():
-                # Arduino's is listening on port 8082
-                send_data('request-did-doc', ip, 8082)
-                DID_doc = receive_data(socket_obj)
-                send_data(DID, ISSUER_HOST, ISSUER_PORT)
-                proof = receive_data(socket_obj)
 
-                if proof == 'no':
+            elif DID not in id_dict.values():
+                # 69420 is the code for request of did doc
+                send_data(69420, ARDUINO_HOST, 8082)  # Arduino's is listening on port 8082
+                DID_doc = receive_data(rasp_socket)
+                send_data(DID, ISSUER_HOST, ISSUER_PORT)
+                received_proof = None
+                # Receive proof response
+                print('waiting for proof')
+
+                while received_proof == None:
+                    print('DID_doc:', DID_doc)
+                    print(addr)
+                    print(received_proof)
+
+                    # Listening for incoming data from issuer
+                    received_proof = receive_specific_data(rasp_socket, ISSUER_HOST)
+
+                if received_proof == 'no':
                     add_to_blacklist(DID)
                     pass
+
                 else:
-                    DID_doc['proof'] = proof
+                    print(received_proof)
+                    print('ses')
+                    exit()
+                    DID_doc['proof'] = received_proof
                     DID_doc['publicKey'] = public_key
                     block_id = upload_block(DID_doc)
                     insert_entry(block_id, DID)
+
             elif DID in id_dict.values():
                 block_id = find_id(DID)
                 DID_document = retrieve_block_data(block_id)
