@@ -95,6 +95,7 @@ def handle_device(issuer_socket, device_queue):
                 print(f'Arduino with {DID} is NOT verified')
 
 
+
 def main():
     # Create a socket object for device
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
