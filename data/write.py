@@ -1,4 +1,7 @@
 def append_to_file(filename, data):
+    # Replace potential ':' characters with '_'
+    filename = filename.replace(':', '_')
+
     try:
         # Open the file in append mode, creating it if it doesn't exist
         with open(filename, 'a') as file:
@@ -11,4 +14,5 @@ def append_to_file(filename, data):
         with open(filename, 'w') as file:
             file.write(data + '\n')
         print("Data written to new file:", filename)
+
 
