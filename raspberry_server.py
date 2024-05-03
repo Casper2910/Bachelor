@@ -43,7 +43,8 @@ def handle_device(socket_obj, ip, port):
             if is_in_blacklist(DID):
                 pass
             elif DID not in id_dict.values():
-                send_data('request-did-doc', ip, port)
+                # Arduino's is listening on port 8082
+                send_data('request-did-doc', ip, 8082)
                 DID_doc = receive_data(socket_obj)
                 send_data(DID, ISSUER_HOST, ISSUER_PORT)
                 proof = receive_data(socket_obj)
