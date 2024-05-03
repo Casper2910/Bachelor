@@ -9,6 +9,7 @@ from iota.block_handler import upload_block, retrieve_block_data
 from keys.keys import public_key
 from id_dict import id_dict
 from data.write import append_to_file
+from connection.connector import send_json
 
 HOST = '192.168.0.141'  # ip
 PORT = 8081  # port
@@ -23,33 +24,29 @@ def handle_device(issuer_socket, device_queue):
         device_socket, device_address = device_queue.get()
 
         # Receive data from device
-        data = device_socket.recv(1024).decode("utf-8").strip()
+        received_data = device_socket.recv(1024).decode("utf-8").strip()
 
-        DID_And_temp = json.loads(data)
+        print('data:', received_data)
 
-        DID = DID_And_temp['DID']
-        temp = DID_And_temp['temperature']
+        data = json.loads(received_data)
+
+        DID = data['DID']
+        temp = data['temperature']
 
         if is_blacklisted(DID):
+            print('DID is blacklisted')
             pass
 
         elif DID not in id_dict.values():
+            print('New DID')
             # request did doc:
-            number_to_send = 69420  # special number for request
-
-            # Create a socket object for device communication
-            device_comm_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-            # Connect to the device using port 8083
-            device_comm_socket.connect((device_address[0], 8083))
-
-            # Send the number to the device
-            device_comm_socket.send(str(number_to_send).encode("utf-8"))
+            send_json(69420, device_address[0], 8082)  # Arduino's is listening on port 8082
 
             # Wait for the did document
             while True:
+                print('Awaiting did document from device...')
                 # Receive data from the device
-                received_data = device_comm_socket.recv(1024).decode("utf-8")
+                received_data = device_socket.recv(1024).decode("utf-8")
 
                 # Parse the received JSON string
                 received_json = json.loads(received_data)
@@ -60,29 +57,31 @@ def handle_device(issuer_socket, device_queue):
                     print('DID doc:', DID_doc)
                     break
 
-            # Close the device communication socket
-            device_comm_socket.close()
-
             # Send the DID to the issuer for authentication
+            print('Sending DID doc to issuer')
             issuer_socket.send(DID.encode("utf-8"))
 
             while True:
+                print('Awaiting issuers signature...')
                 # Receive data from the issuer
                 proof = issuer_socket.recv(1024).decode("utf-8")
 
                 # Example: Check if the received data from the issuer matches a specific condition
                 if proof == 'no':
-                    # Do something if the condition is met
+                    # add to blacklist
+                    print('DID has been blacklisted')
                     add_to_blacklist(DID)
                     break
 
                 else:
+                    print('DID has been authorized')
                     DID_doc['proof'] = proof
                     DID_doc['publicKey'] = public_key
                     block_id = upload_block(DID_doc)
                     insert_entry(block_id, DID)
 
         elif DID in id_dict.values():
+            print('Known DID')
             block_id = find_id(DID)
             DID_document = retrieve_block_data(block_id)
             proof_base64 = DID_document['proof']
