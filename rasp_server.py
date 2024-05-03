@@ -37,7 +37,7 @@ def handle_device(issuer_socket, device_queue):
             print('DID is blacklisted')
             pass
 
-        elif DID not in id_dict.values():
+        if DID not in id_dict.values():
             print('New DID')
             # request did doc:
             send_json(69420, device_address[0], 8082)  # Arduino's is listening on port 8082
@@ -64,7 +64,7 @@ def handle_device(issuer_socket, device_queue):
             while True:
                 print('Awaiting issuers signature...')
                 # Receive data from the issuer
-                proof = issuer_socket.recv(1024).decode("utf-8")
+                proof = issuer_socket.recv(1024)
 
                 # Example: Check if the received data from the issuer matches a specific condition
                 if proof == 'no':
@@ -79,8 +79,9 @@ def handle_device(issuer_socket, device_queue):
                     DID_doc['publicKey'] = public_key
                     block_id = upload_block(DID_doc)
                     insert_entry(block_id, DID)
+                    break
 
-        elif DID in id_dict.values():
+        if DID in id_dict.values():
             print('Known DID')
             block_id = find_id(DID)
             DID_document = retrieve_block_data(block_id)
@@ -92,9 +93,6 @@ def handle_device(issuer_socket, device_queue):
                 append_to_file(DID, temp)
             else:
                 print(f'Arduino with {DID} is NOT verified')
-
-        else:
-            print('ERROR')
 
 
 def main():
