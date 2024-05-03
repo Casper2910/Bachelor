@@ -1,91 +1,96 @@
-from connection.connector import server, send_data
-from keys.Signing import verify_proof, sign_proof
-from block_id_dictonary.write_read_dict import insert_entry, find_id, is_in_blacklist, add_to_blacklist
-from iota.block_handler import upload_block, retrieve_block_data
-from keys.keys import public_key, private_key
-from id_dict import id_dict, blacklist
-import base64
-from data.write import append_to_file
 import socket
+import threading
+import time
+import base64
+from connection.connector import send_json, receive_json, receive_specific_data_string
+from keys.Signing import verify_proof
+from block_id_dictonary.write_read_dict import insert_entry, find_id, is_blacklisted, add_to_blacklist
+from iota.block_handler import upload_block, retrieve_block_data
+from keys.keys import public_key
+from id_dict import id_dict
+from data.write import append_to_file
 
-HOST = '192.168.0.133'  # own ip
+HOST = '192.168.0.141'  # own ip
 PORT = 8081  # own port
 
 ISSUER_HOST = '192.168.0.133'  # issuer ip
 ISSUER_PORT = 8080  # issuer port
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-    server.bind(HOST, PORT)
-    server.listen()
-    conn, addr = server.accept()
 
-while True:
-    # receives DID from arduino
-    json, arduino_ip_port = server(HOST, PORT)
+def handle_device(rasp_socket, ip, port):
+    while True:
+        json_data = receive_json(rasp_socket)
+        if json_data:
+            DID = json_data['DID']
+            temperature = json_data['temperature']
+            print('did:', DID)  # the DID String
+            print(ip, port)  # tuple
 
-    # Extract the DID and temperature
-    DID = json['DID']
-    temperature = json['temperature']
+            # Arduino server dest
+            ARDUINO_HOST = ip
+            ARDUINO_PORT = port
 
-    print('did:', DID)  # the DID String
-    print(arduino_ip_port)  # tuple
-    ip, _ = arduino_ip_port
-    port = 8082
-    print("ip:", ip)
-    print("port:", port)
+            if is_blacklisted(DID):
+                pass
 
-    # check if the arduino is blacklisted
-    if is_in_blacklist(DID):
-        pass
+            elif DID not in id_dict.values():
+                # 69420 is the code for request of did doc
+                send_json(69420, ARDUINO_HOST, 8082)  # Arduino's is listening on port 8082
+                DID_doc = receive_json(rasp_socket)
+                received_proof = None
+                # Receive proof response
+                print('waiting for proof')
 
-    # If DID is not verified
-    elif DID not in id_dict.values():
-        # Request did doc from arduino
-        send_data('request-did-doc', ip, port)
+                while received_proof == None:
+                    print('DID_doc:', DID_doc)
+                    print(received_proof)
 
-        # Now wait for the response from the Arduino
-        DID_doc, _ = server(HOST, PORT)
+                    # Listening for incoming data from issuer
+                    # ask for proof
+                    send_json(DID, ISSUER_HOST, ISSUER_PORT)
+                    received_proof = receive_specific_data_string(rasp_socket, ISSUER_HOST)
+                    time.sleep(5)
 
-        # send did to issuer
-        send_data(DID, ISSUER_HOST, ISSUER_PORT)
+                if received_proof == 'no':
+                    add_to_blacklist(DID)
+                    pass
 
-        # Now wait for the response from the issuer
-        proof, _ = server(ISSUER_HOST, ISSUER_PORT)
+                else:
+                    print(received_proof)
+                    print('ses')
+                    DID_doc['proof'] = received_proof
+                    DID_doc['publicKey'] = public_key
+                    block_id = upload_block(DID_doc)
+                    insert_entry(block_id, DID)
 
-        # if proof is 'no', means no proof for the Arduino
-        if proof == 'no':
-            add_to_blacklist(DID)
-            pass
-
+            elif DID in id_dict.values():
+                block_id = find_id(DID)
+                DID_document = retrieve_block_data(block_id)
+                proof_base64 = DID_document['proof']
+                proof_binary = base64.b64decode(proof_base64)
+                if verify_proof(proof_binary, public_key, DID):
+                    print(f'Arduino with {DID} is verified')
+                    append_to_file(DID, temperature)
+                else:
+                    print(f'Arduino with {DID} is NOT verified')
+            else:
+                print('ERROR')
         else:
-            # Add proof to did document and store it in iota
-            DID_doc['proof'] = proof
-            DID_doc['publicKey'] = public_key
+            break
 
-            # upload DID document to iota tangle
-            block_id = upload_block(DID_doc)
 
-            # store associated block id to the DID
-            insert_entry(block_id, DID)
+def main():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind((HOST, PORT))
+        server_socket.listen()
 
-    # If DID is verified
-    elif DID in id_dict.values():
-        # find associated block id for the DID
-        block_id = find_id(DID)
+        while True:
+            conn, addr = server_socket.accept()
+            ip, port = addr
+            print(f"Connection from {ip}:{port}")
+            device_thread = threading.Thread(target=handle_device, args=(conn, ip, port))
+            device_thread.start()
 
-        # obtain DID document for the DID
-        DID_document = retrieve_block_data(block_id)
 
-        # Decode the proof signature from base64 to binary format
-        proof_base64 = DID_document['proof']
-        proof_binary = base64.b64decode(proof_base64)
-
-        # Verify proof from issuer
-        if verify_proof(proof_binary, public_key, DID):
-            print(f'Arduino with {DID} is verified')
-            append_to_file(DID, temperature)
-        else:
-            print(f'Arduino with {DID} is NOT verified')
-
-    else:
-        print('ERROR')
+if __name__ == "__main__":
+    main()

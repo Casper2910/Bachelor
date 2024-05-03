@@ -1,52 +1,66 @@
 import socket
 import threading
-import time
-import json
-import base64
-from connection.connector import send_json, receive_specific_data_json, receive_specific_data_string
-from keys.Signing import verify_proof, sign_proof
-from block_id_dictonary.write_read_dict import pop_queue_list, add_to_queue_list
-from iota.block_handler import upload_block, retrieve_block_data
+from keys.Signing import sign_proof
 from keys.keys import public_key, private_key
-from id_dict import id_dict
-from blacklist import blacklist
-from data.write import append_to_file
-from queue_list import queue_list
+from queue import Queue
 
 HOST = '192.168.0.133'  # ip
 PORT = 8080  # port
 
-VERIFIER_HOST = '192.168.0.141'  # own ip
-VERIFIER_PORT = 8081  # own port
 
+def handle_request(queue):
+    while True:
+        # Get client socket from the queue
+        client_socket, client_address = queue.get()
 
-def handle_request(issuer_socket, ip, port):
-    DID = receive_specific_data_string(issuer_socket)
-    if DID:
+        # Receive data from client
+        DID = client_socket.recv(1024).decode("utf-8").strip()
         answer = input(f'Do you want to deliver proof for: {DID} \n Yes \n No \n').lower()
 
-        if answer == 'yes':
+        # Process received data and decide response
+        if answer == "yes":
             proof = sign_proof(DID, private_key, public_key)
-            print(proof)
-            send_json({"proof": proof}, VERIFIER_HOST, VERIFIER_PORT)
-            pop_queue_list()
+            response = proof
+            # Send response back to client
+            client_socket.send(response)
+        else:
+            response = "no"
+            # Send response back to client
+            client_socket.send(response.encode("utf-8"))
 
-        elif answer == 'no':
-            send_json('no', VERIFIER_HOST, VERIFIER_PORT)
-            pop_queue_list()
+        print('data send: ', response)
+        # Close client socket
+        client_socket.close()
+
+        # Mark the task as done
+        queue.task_done()
 
 
 def main():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind((HOST, PORT))
-        server_socket.listen()
+    # Create a socket object
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        while True:
-            conn, addr = server_socket.accept()
-            ip, port = addr
-            print(f"Connection from {ip}:{port}")
-            device_thread = threading.Thread(target=handle_request, args=(conn, ip, port))
-            device_thread.start()
+    # Bind the socket to a specific address and port
+    server_socket.bind((HOST, PORT))
+
+    # Listen for incoming connections
+    server_socket.listen(5)
+    print("Server listening for connections...")
+
+    # Create a queue to hold incoming connections
+    connection_queue = Queue()
+
+    # Start the client handler thread
+    client_handler_thread = threading.Thread(target=handle_request, args=(connection_queue,))
+    client_handler_thread.start()
+
+    while True:
+        # Accept connection from client
+        client_socket, client_address = server_socket.accept()
+        print("Connection from:", client_address)
+
+        # Add client socket to the queue
+        connection_queue.put((client_socket, client_address))
 
 
 if __name__ == "__main__":

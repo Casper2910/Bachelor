@@ -1,0 +1,135 @@
+import socket
+import threading
+import base64
+import json
+from queue import Queue
+from keys.Signing import verify_proof
+from block_id_dictonary.write_read_dict import insert_entry, find_id, is_blacklisted, add_to_blacklist
+from iota.block_handler import upload_block, retrieve_block_data
+from keys.keys import public_key
+from id_dict import id_dict
+from data.write import append_to_file
+
+HOST = '192.168.0.141'  # ip
+PORT = 8081  # port
+
+ISSUER_HOST = '192.168.0.133'  # issuer ip
+ISSUER_PORT = 8080  # issuer port
+
+
+def handle_device(issuer_socket, device_queue):
+    while True:
+        # Get device socket from the queue
+        device_socket, device_address = device_queue.get()
+
+        # Receive data from device
+        data = device_socket.recv(1024).decode("utf-8").strip()
+
+        DID_And_temp = json.loads(data)
+
+        DID = DID_And_temp['DID']
+        temp = DID_And_temp['temperature']
+
+        if is_blacklisted(DID):
+            pass
+
+        elif DID not in id_dict.values():
+            # request did doc:
+            number_to_send = 69420  # special number for request
+
+            # Create a socket object for device communication
+            device_comm_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+            # Connect to the device using port 8083
+            device_comm_socket.connect((device_address[0], 8083))
+
+            # Send the number to the device
+            device_comm_socket.send(str(number_to_send).encode("utf-8"))
+
+            # Wait for the did document
+            while True:
+                # Receive data from the device
+                received_data = device_comm_socket.recv(1024).decode("utf-8")
+
+                # Parse the received JSON string
+                received_json = json.loads(received_data)
+
+                if "proof" in received_json:
+                    DID_doc = received_json
+                    # Do something if the field and its content match
+                    print('DID doc:', DID_doc)
+                    break
+
+            # Close the device communication socket
+            device_comm_socket.close()
+
+            # Send the DID to the issuer for authentication
+            issuer_socket.send(DID.encode("utf-8"))
+
+            while True:
+                # Receive data from the issuer
+                proof = issuer_socket.recv(1024).decode("utf-8")
+
+                # Example: Check if the received data from the issuer matches a specific condition
+                if proof == 'no':
+                    # Do something if the condition is met
+                    add_to_blacklist(DID)
+                    break
+
+                else:
+                    DID_doc['proof'] = proof
+                    DID_doc['publicKey'] = public_key
+                    block_id = upload_block(DID_doc)
+                    insert_entry(block_id, DID)
+
+        elif DID in id_dict.values():
+            block_id = find_id(DID)
+            DID_document = retrieve_block_data(block_id)
+            proof_base64 = DID_document['proof']
+            proof_binary = base64.b64decode(proof_base64)
+
+            if verify_proof(proof_binary, public_key, DID):
+                print(f'Arduino with {DID} is verified')
+                append_to_file(DID, temp)
+            else:
+                print(f'Arduino with {DID} is NOT verified')
+
+        else:
+            print('ERROR')
+
+
+def main():
+    # Create a socket object for device
+    device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Create a socket object for issuer
+    issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Connect to the issuer
+    issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
+
+    # Bind the device socket to a specific address and port
+    device_socket.bind((HOST, PORT))
+
+    # Listen for incoming connections on the device socket
+    device_socket.listen(5)
+    print("Device socket listening for connections...")
+
+    # Create a queue to hold incoming device connections
+    device_queue = Queue()
+
+    # Start the device handler thread
+    device_handler_thread = threading.Thread(target=handle_device, args=(issuer_socket, device_queue))
+    device_handler_thread.start()
+
+    while True:
+        # Accept connection from device
+        device_conn, device_address = device_socket.accept()
+        print("Connection from device:", device_address)
+
+        # Add device socket to the queue
+        device_queue.put((device_conn, device_address))
+
+
+if __name__ == "__main__":
+    main()
