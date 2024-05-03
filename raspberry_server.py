@@ -1,5 +1,6 @@
 import socket
 import threading
+import time
 import json
 import base64
 from connection.connector import send_data, receive_data, receive_specific_data
@@ -11,7 +12,7 @@ from id_dict import id_dict
 from blacklist import blacklist
 from data.write import append_to_file
 
-HOST = '192.168.0.133'  # own ip
+HOST = '192.168.0.141'  # own ip
 PORT = 8081  # own port
 
 ISSUER_HOST = '192.168.0.133'  # issuer ip
@@ -38,18 +39,19 @@ def handle_device(rasp_socket, ip, port):
                 # 69420 is the code for request of did doc
                 send_data(69420, ARDUINO_HOST, 8082)  # Arduino's is listening on port 8082
                 DID_doc = receive_data(rasp_socket)
-                send_data(DID, ISSUER_HOST, ISSUER_PORT)
                 received_proof = None
                 # Receive proof response
                 print('waiting for proof')
 
                 while received_proof == None:
                     print('DID_doc:', DID_doc)
-                    print(addr)
                     print(received_proof)
 
                     # Listening for incoming data from issuer
+                    # ask for proof
+                    send_data(DID, ISSUER_HOST, ISSUER_PORT)
                     received_proof = receive_specific_data(rasp_socket, ISSUER_HOST)
+                    time.sleep(5)
 
                 if received_proof == 'no':
                     add_to_blacklist(DID)
@@ -58,7 +60,6 @@ def handle_device(rasp_socket, ip, port):
                 else:
                     print(received_proof)
                     print('ses')
-                    exit()
                     DID_doc['proof'] = received_proof
                     DID_doc['publicKey'] = public_key
                     block_id = upload_block(DID_doc)
