@@ -21,7 +21,7 @@ VERIFIER_PORT = 8081  # own port
 
 
 def handle_request(issuer_socket, ip, port):
-    DID = receive_data(issuer_socket)
+    DID = receive_specific_data_string(issuer_socket)
     if DID:
         answer = input(f'Do you want to deliver proof for: {DID} \n Yes \n No \n').lower()
 
