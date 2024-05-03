@@ -1,13 +1,10 @@
 import os
 import json
 import base64
-from dotenv import load_dotenv
 
 # Import the python iota client
 # Make sure you have first installed it with `pip install iota_sdk`
 from iota_sdk import Client, hex_to_utf8, utf8_to_hex
-
-load_dotenv()
 
 
 def create_client_instance():
