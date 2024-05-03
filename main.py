@@ -1,4 +1,4 @@
-from connection.Recieve import server
+from connection.connector import server
 from keys.Signing import verify_proof, sign_proof
 from block_id_dictonary.write_read_dict import insert_entry, find_id
 from iota.block_handler import upload_block, retrieve_block_data
