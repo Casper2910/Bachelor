@@ -1,6 +1,6 @@
 import socket
 import threading
-from connection.connector import send_data, server
+from connection.connector import send_data
 from keys.Signing import sign_proof
 from keys.keys import public_key, private_key
 import queue
@@ -9,6 +9,15 @@ HOST = '192.168.0.133'  # ip
 PORT = 8080  # port
 
 proof_queue = queue.Queue()
+
+
+def receive_data(conn):
+    try:
+        data = conn.recv(1024)
+        return data.decode()
+    except socket.error as e:
+        print(f"Error receiving data: {e}")
+        return None
 
 
 def handle_request():
@@ -21,11 +30,15 @@ def handle_request():
 
             if answer == 'yes':
                 proof = sign_proof(DID, private_key, public_key)
-                send_data(proof, VERIFIER_HOST, VERIFIER_PORT)
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((VERIFIER_HOST, VERIFIER_PORT))
+                    send_data(proof, VERIFIER_HOST, VERIFIER_PORT)
                 break
 
             elif answer == 'no':
-                send_data('no', VERIFIER_HOST, VERIFIER_PORT)
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((VERIFIER_HOST, VERIFIER_PORT))
+                    send_data('no', VERIFIER_HOST, VERIFIER_PORT)
                 break
 
             else:
@@ -36,13 +49,17 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind((HOST, PORT))
         server_socket.listen()
+        print('listening on', HOST, PORT)
 
         # Start a thread to handle proof requests
         threading.Thread(target=handle_request, daemon=True).start()
 
         while True:
-            DID, verifier = server(HOST, PORT)
-            proof_queue.put((DID, verifier))
+            conn, addr = server_socket.accept()
+            data = receive_data(conn)
+            if data:
+                DID, verifier = data.split(",")
+                proof_queue.put((DID, (addr[0], int(addr[1]))))
 
 
 if __name__ == "__main__":
