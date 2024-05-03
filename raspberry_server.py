@@ -3,7 +3,7 @@ import threading
 import time
 import json
 import base64
-from connection.connector import send_data, receive_data, receive_specific_data
+from connection.connector import send_json, receive_json, receive_specific_data_string
 from keys.Signing import verify_proof
 from block_id_dictonary.write_read_dict import insert_entry, find_id, is_blacklisted, add_to_blacklist
 from iota.block_handler import upload_block, retrieve_block_data
@@ -21,7 +21,7 @@ ISSUER_PORT = 8080  # issuer port
 
 def handle_device(rasp_socket, ip, port):
     while True:
-        json_data = receive_data(rasp_socket)
+        json_data = receive_json(rasp_socket)
         if json_data:
             DID = json_data['DID']
             temperature = json_data['temperature']
@@ -37,8 +37,8 @@ def handle_device(rasp_socket, ip, port):
 
             elif DID not in id_dict.values():
                 # 69420 is the code for request of did doc
-                send_data(69420, ARDUINO_HOST, 8082)  # Arduino's is listening on port 8082
-                DID_doc = receive_data(rasp_socket)
+                send_json(69420, ARDUINO_HOST, 8082)  # Arduino's is listening on port 8082
+                DID_doc = receive_json(rasp_socket)
                 received_proof = None
                 # Receive proof response
                 print('waiting for proof')
@@ -49,8 +49,8 @@ def handle_device(rasp_socket, ip, port):
 
                     # Listening for incoming data from issuer
                     # ask for proof
-                    send_data(DID, ISSUER_HOST, ISSUER_PORT)
-                    received_proof = receive_specific_data(rasp_socket, ISSUER_HOST)
+                    send_json(DID, ISSUER_HOST, ISSUER_PORT)
+                    received_proof = receive_specific_data_string(rasp_socket, ISSUER_HOST)
                     time.sleep(5)
 
                 if received_proof == 'no':
