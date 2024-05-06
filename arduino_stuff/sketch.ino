@@ -1,19 +1,32 @@
 #include <WiFiNINA.h>
 #include <ArduinoJson.h>
+#include <Adafruit_ESP8266.h>
+#include <Arduino_MKRIoTCarrier.h>
+#include <ArduinoUniqueID.h>
 
-char ssid[] = "wifi";      // your network SSID (name)
-char pass[] = "pass";   // your network password
-int status = WL_IDLE_STATUS;          // the WiFi status
+char ssid[] = "wifi";       // your network SSID (name)
+char pass[] = "pass";    // your network password
+int status = WL_IDLE_STATUS;    // the WiFi status
 
-IPAddress server(192, 168, 0, 133);   // IP address of the target device
-int port = 8080;                        // port of the target device
+IPAddress server(192, 168, 0, 141);   // IP address of the target device
+int serverPort = 8081;                 // port of the target device
+int listenPort = 8082;                 // port to listen for incoming requests
 
 WiFiClient client;
+WiFiServer wifiServer(listenPort);     // Define WiFiServer object to listen on port 8082
+
+MKRIoTCarrier carrier;
+
+String DID;                 // Variable for DID
+String DID_Document_String; // Variable for DID document as string
+String DeviceID;            // Variable for unique identifier for device
+
+int check;
 
 void setup() {
   Serial.begin(9600);
 
-  // attempt to connect to WiFi network
+  // Connect to WiFi network
   while (status != WL_CONNECTED) {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
@@ -25,45 +38,96 @@ void setup() {
   // Connect to server
   Serial.print("Attempting to connect to server: ");
   Serial.println(server);
-  if (client.connect(server, port)) {
-    Serial.println("Connected to server");
-  } else {
-    Serial.println("Connection failed");
+  while (!connectToServer()) {
+    Serial.println("Connection failed. Reconnecting...");
+    delay(5000);
   }
+
+  // Get unique identifier
+  UniqueIDdump(Serial);
+  for (size_t i = 0; i < UniqueIDsize; i++) {
+    DeviceID += String(UniqueID[i]);
+  }
+
+  // Generate DID:
+  DID = "did:iota:test" + DeviceID;
+
+  // Create a JSON object for DID document
+  StaticJsonDocument<200> jsonDocument;
+  jsonDocument["@context"] = "https://w3id.org/security/suites/ed25519-2020/v1"
+  jsonDocument["id"] = DID;
+  jsonDocument["controller"] = "did:iota:root";
+  jsonDocument["serial"] = DeviceID;
+  jsonDocument["proof"] = "NEEDS_PROOF";
+
+  // Create a nested JSON object for verification method
+  JsonObject verificationMethod = jsonDocument.createNestedObject("verificationMethod");
+  verificationMethod["id"] = "did:iota:test1/path";
+  verificationMethod["type"] = "Ed25519VerificationKey2018";
+  verificationMethod["controller"] = "did:iota:root";
+  verificationMethod["publicKey"] = "";
+
+  // Serialize JSON object to a string
+  serializeJson(jsonDocument, DID_Document_String);
+  Serial.println("Setup done");
+  carrier.begin();
+  wifiServer.begin(); // Start listening for incoming connections
 }
 
 void loop() {
-  if (client.connected()) {
-    // Create a JSON object
-    StaticJsonDocument<400> jsonDocument; // Adjust buffer size as needed
-    jsonDocument["id"] = "did:iota:test1";
-    jsonDocument["controller"] = "did:iota:root";
-    jsonDocument["proof"] = "NEEDS_PROOF";
+  // Check if the client is connected
+  if (!client.connected()) {
+    // If not connected, attempt to reconnect
+    if (!connectToServer()) {
+      Serial.println("Connection lost. Reconnecting...");
+    }
+  } else {
+    // Create a JSON object for DID
+    StaticJsonDocument<200> jsonDID;
 
-    // Create a nested JSON object
-    JsonObject verificationMethod = jsonDocument.createNestedObject("verificationMethod");
-    verificationMethod["id"] = "did:iota:test1/path";
-    verificationMethod["type"] = "Ed25519VerificationKey2018";
-    verificationMethod["controller"] = "did:iota:root";
-    verificationMethod["publicKeyBinary"] = "";
+    // Populate JSON object with data
+    jsonDID["DID"] = DID;
+    float temp = carrier.Env.readTemperature();
+    jsonDID["temperature"] = temp;
 
     // Serialize JSON object to a string
-    String jsonString;
-    serializeJson(jsonDocument, jsonString);
+    String jsonData;
+    serializeJson(jsonDID, jsonData);
+    //Serial.println(jsonData);
 
     // Send JSON string to server
-    client.println(jsonString);
-    Serial.println("JSON message sent to server: " + jsonString);
+    client.print(jsonData);
+    // Serial.println("Message sent to server:" + jsonData);
+    delay(2000);
 
-    // Wait a bit before sending the next message
-    delay(5000);
-  } else {
-    // If the connection is lost, attempt to reconnect
-    Serial.println("Connection lost. Reconnecting...");
-    if (client.connect(server, port)) {
-      Serial.println("Reconnected to server");
-    } else {
-      Serial.println("Reconnection failed");
+    // Check if there is any incoming request from the server
+    WiFiClient serverClient = wifiServer.available();
+    if (serverClient) {
+      String request = serverClient.readStringUntil('\r'); // Read the request
+      Serial.println("Request received: " + request);
+      check = request.toInt();
+
+      // If the request is 'request-did-doc', send the DID document to the server
+      // Check if the request is equal to "request-did-doc"
+      // 69420 is the number to look for
+    if (check == 69420) {
+    Serial.println("Received request for DID document");
+    client.print(DID_Document_String);
+    Serial.println("Sent DID document to server: " + DID_Document_String);
+    delay(10000); // Delay to prevent flooding the server
     }
+
+      serverClient.stop(); // Close the connection with the server
+    }
+  }
+}
+
+bool connectToServer() {
+  if (client.connect(server, serverPort)) {
+    Serial.println("Connected to server");
+    return true;
+  } else {
+    Serial.println("Connection failed");
+    return false;
   }
 }
