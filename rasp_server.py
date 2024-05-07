@@ -90,7 +90,10 @@ def handle_device(issuer_socket, device_queue):
 
             if verify_proof(proof_binary, public_key, DID):
                 print(f'Arduino with {DID} is verified')
-                append_to_file(DID, temp)
+
+                # continue to document for 100 cycles:
+                for i in range(100):
+                    append_to_file(DID, temp)
             else:
                 print(f'Arduino with {DID} is NOT verified')
 
