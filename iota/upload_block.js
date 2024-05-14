@@ -1,6 +1,4 @@
 "use strict";
-// Copyright 2021-2023 IOTA Stiftung
-// SPDX-License-Identifier: Apache-2.0
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -40,16 +38,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var sdk_1 = require("@iota/sdk");
 require('dotenv').config({ path: '.env' });
-// Run with command:
-// yarn run-example ./client/08-data-block.ts
-// In this example we will send a block with a tagged data payload.
-function run() {
+var block_id;
+// Define types for tag and message parameters
+function upload(tag, message) {
     return __awaiter(this, void 0, void 0, function () {
-        var _i, _a, envVar, client, options, mnemonic, secretManager, blockIdAndBlock, fetchedBlock, payload, error_1;
+        var _i, _a, envVar, client, options, mnemonic, secretManager, blockIdAndBlock, error_1;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
+                    // Initialize the logger
                     (0, sdk_1.initLogger)();
+                    // Check if NODE_URL and EXPLORER_URL environment variables are defined
                     for (_i = 0, _a = ['NODE_URL', 'EXPLORER_URL']; _i < _a.length; _i++) {
                         envVar = _a[_i];
                         if (!(envVar in process.env)) {
@@ -57,38 +56,40 @@ function run() {
                         }
                     }
                     client = new sdk_1.Client({
-                        // Insert your node URL in the .env.
                         nodes: [process.env.NODE_URL],
                     });
                     options = {
-                        tag: (0, sdk_1.utf8ToHex)('Hello'),
-                        data: (0, sdk_1.utf8ToHex)('Tangle'),
+                        tag: (0, sdk_1.utf8ToHex)(tag),
+                        data: (0, sdk_1.utf8ToHex)(message),
                     };
                     _b.label = 1;
                 case 1:
-                    _b.trys.push([1, 4, , 5]);
+                    _b.trys.push([1, 3, , 4]);
                     mnemonic = sdk_1.Utils.generateMnemonic();
                     secretManager = { mnemonic: mnemonic };
                     return [4 /*yield*/, client.buildAndPostBlock(secretManager, options)];
                 case 2:
                     blockIdAndBlock = _b.sent();
-                    console.log("Block sent: ".concat(process.env.EXPLORER_URL, "/block/").concat(blockIdAndBlock[0]));
-                    return [4 /*yield*/, client.getBlock(blockIdAndBlock[0])];
+                    // Print the tag and data sent in a readable format
+                    console.log('Tag sent:', tag);
+                    console.log('Data sent:', message);
+                    // Return the block ID
+                    return [2 /*return*/, blockIdAndBlock[0]];
                 case 3:
-                    fetchedBlock = _b.sent();
-                    console.log('Block data: ', fetchedBlock);
-                    if (fetchedBlock.payload instanceof sdk_1.TaggedDataPayload) {
-                        payload = fetchedBlock.payload;
-                        console.log('Decoded data:', (0, sdk_1.hexToUtf8)(payload.data));
-                    }
-                    return [3 /*break*/, 5];
-                case 4:
                     error_1 = _b.sent();
                     console.error('Error: ', error_1);
-                    return [3 /*break*/, 5];
-                case 5: return [2 /*return*/];
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
 }
-run().then(function () { return process.exit(); });
+// Call the upload function and log the block ID
+upload('Hello', '{"message": "Tangle"}')
+    // saving block id in variable
+    .then(function (blockId) {
+    block_id = blockId;
+    console.log('Block ID:', block_id);
+})
+    .catch(function (error) { return console.error('Error:', error); });
+console.log("hihi: " + block_id);
