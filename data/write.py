@@ -4,7 +4,7 @@ def append_to_file(filename, data):
 
     try:
         # Open the file in append mode, creating it if it doesn't exist
-        with open(filename, 'a') as file:
+        with open(f'data/{filename}', 'a') as file:
             # Convert data to float and then write it to the file
             file.write(str(float(data)) + '\n')  # Assuming each data entry is written on a new line
         print("Data appended to", filename)
