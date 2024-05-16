@@ -11,7 +11,7 @@ from id_dict import id_dict
 from data.write import append_to_file
 from connection.connector import send_json
 
-HOST = '192.168.0.141'  # ip
+HOST = socket.gethostbyname(socket.gethostname())  # own ip
 PORT = 8081  # port
 
 ISSUER_HOST = '192.168.0.133'  # issuer ip
@@ -96,7 +96,6 @@ def handle_device(issuer_socket, device_queue):
                     append_to_file(DID, temp)
             else:
                 print(f'Arduino with {DID} is NOT verified')
-
 
 
 def main():
