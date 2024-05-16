@@ -9,9 +9,9 @@ from iota.block_handler import upload_block, retrieve_block_data
 from keys.keys import public_key
 from id_dict import id_dict
 from data.write import append_to_file
-from connection.connector import send_json
+from connection.connector import send_json, obtain_ip
 
-HOST = socket.gethostbyname(socket.gethostname())  # own ip
+HOST = obtain_ip()  # own ip
 PORT = 8081  # port
 
 ISSUER_HOST = '192.168.0.133'  # issuer ip

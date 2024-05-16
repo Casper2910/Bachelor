@@ -3,8 +3,9 @@ import threading
 from keys.Signing import sign_proof
 from keys.keys import public_key, private_key
 from queue import Queue
+from connection.connector import obtain_ip
 
-HOST = socket.gethostbyname(socket.gethostname()) # own ip
+HOST = obtain_ip()  # own ip # own ip
 PORT = 8080  # port
 
 
