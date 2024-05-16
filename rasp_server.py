@@ -90,7 +90,7 @@ def handle_device(issuer_socket, device_queue):
                 issuer_socket.send(json.dumps(request_data).encode("utf-8"))
                 proof = issuer_socket.recv(1024)
 
-                if proof == b'no':
+                if proof == 'no':
                     print('DID has been blacklisted')
                     add_to_blacklist(DID)
                 else:
