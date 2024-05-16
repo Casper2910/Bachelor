@@ -52,9 +52,9 @@ def handle_device(device_socket, device_address, issuer_socket):
                     append_to_file(DID, temp)
                 else:
                     print(f'Arduino with {DID} is NOT verified')
+
         except Exception as e:
-            print(f"An error occurred: {e}")
-            # You might want to handle the error here, depending on your requirements
+            print(e)
 
 
 def handle_issuer(device_queue, issuer_socket):
