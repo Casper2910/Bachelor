@@ -16,7 +16,7 @@ from connection.connector import send_json, obtain_ip
 HOST = obtain_ip()  # own ip
 PORT = 8081  # port
 
-ISSUER_HOST = '192.168.0.133'  # issuer ip
+ISSUER_HOST = '192.168.0.141'  # issuer ip
 ISSUER_PORT = 8080  # issuer port
 
 REQUESTS_FILE = "auth_requests.json"
