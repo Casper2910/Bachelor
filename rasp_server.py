@@ -105,6 +105,9 @@ def main():
     # Create a socket object for issuer
     issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+    # Display ip and port for the Arduino config
+    print(f"Device socket listening for connections on {HOST, PORT}...")
+
     # Connect to the issuer
     issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
 
@@ -113,7 +116,6 @@ def main():
 
     # Listen for incoming connections on the device socket
     device_socket.listen(5)
-    print(f"Device socket listening for connections on {HOST, PORT}...")
 
     # Create a queue to hold incoming device connections
     device_queue = Queue()
