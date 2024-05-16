@@ -40,11 +40,14 @@ def send_stored_requests(issuer_socket):
         with open(REQUESTS_FILE, "r") as file:
             requests = json.load(file)
 
+        with open(REQUESTS_FILE, "w") as file:
+            json.dump([], file)
+
         for request in requests:
             issuer_socket.send(json.dumps(request).encode("utf-8"))
             proof = issuer_socket.recv(1024)
 
-            if proof == 'no':
+            if proof == b'no':
                 add_to_blacklist(request['DID'])
             else:
                 request['DID_doc']['proof'] = proof.decode("utf-8")
@@ -52,14 +55,12 @@ def send_stored_requests(issuer_socket):
                 block_id = upload_block(request['DID_doc'])
                 insert_entry(block_id, request['DID'])
 
-        os.remove(REQUESTS_FILE)
 
-
-def handle_device(issuer_socket, device_queue):
+def handle_device(device_queue):
     while True:
         device_socket, device_address = device_queue.get()
         received_data = device_socket.recv(1024).decode("utf-8").strip()
-        print('data:', received_data)
+        print('Data:', received_data)
 
         data = json.loads(received_data)
         DID = data['DID']
@@ -67,7 +68,7 @@ def handle_device(issuer_socket, device_queue):
 
         if is_blacklisted(DID):
             print('DID is blacklisted')
-            pass
+            continue
 
         if DID not in id_dict.values():
             print('New DID')
@@ -86,24 +87,10 @@ def handle_device(issuer_socket, device_queue):
                 "DID_doc": DID_doc
             }
 
-            try:
-                issuer_socket.send(json.dumps(request_data).encode("utf-8"))
-                proof = issuer_socket.recv(1024)
+            store_request(request_data)
+            print("Request stored due to issuer being down or for later processing")
 
-                if proof == 'no':
-                    print('DID has been blacklisted')
-                    add_to_blacklist(DID)
-                else:
-                    print('DID has been authorized')
-                    DID_doc['proof'] = proof.decode("utf-8")
-                    DID_doc['publicKey'] = public_key
-                    block_id = upload_block(DID_doc)
-                    insert_entry(block_id, DID)
-            except (ConnectionRefusedError, socket.error):
-                print("Issuer is down, storing the request")
-                store_request(request_data)
-
-        if DID in id_dict.values():
+        else:
             print('Known DID')
             block_id = find_id(DID)
             DID_document = retrieve_block_data(block_id)
@@ -118,31 +105,46 @@ def handle_device(issuer_socket, device_queue):
                 print(f'Arduino with {DID} is NOT verified')
 
 
-def main():
-    device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print(f"Device socket listening for connections on {HOST, PORT}...")
-
+def connect_to_issuer():
     while True:
         try:
+            issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
             print("Connected to issuer")
             send_stored_requests(issuer_socket)
-            break
+            return issuer_socket
         except (ConnectionRefusedError, socket.error):
             print("Issuer is down, retrying in 5 seconds...")
             time.sleep(5)
 
+
+def main():
+    device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print(f"Device socket listening for connections on {HOST, PORT}...")
+
     device_socket.bind((HOST, PORT))
     device_socket.listen(5)
     device_queue = Queue()
-    device_handler_thread = threading.Thread(target=handle_device, args=(issuer_socket, device_queue))
+
+    device_handler_thread = threading.Thread(target=handle_device, args=(device_queue,))
     device_handler_thread.start()
 
     while True:
-        device_conn, device_address = device_socket.accept()
-        print("Connection from device:", device_address)
-        device_queue.put((device_conn, device_address))
+        issuer_socket = None
+        while issuer_socket is None:
+            issuer_socket = connect_to_issuer()
+
+        while True:
+            device_conn, device_address = device_socket.accept()
+            print("Connection from device:", device_address)
+            device_queue.put((device_conn, device_address))
+
+            if issuer_socket:
+                try:
+                    issuer_socket.send(b'ping')
+                except (ConnectionRefusedError, socket.error):
+                    issuer_socket = None
+                    break
 
 
 if __name__ == "__main__":
