@@ -20,39 +20,41 @@ ISSUER_PORT = 8080  # issuer port
 
 
 def handle_device(device_socket, device_address, issuer_socket):
-    # Receive data from device
-    received_data = device_socket.recv(1024).decode("utf-8").strip()
-    print('data:', received_data)
+    while True:
+        try:
+            # Receive data from device
+            received_data = device_socket.recv(1024).decode("utf-8").strip()
+            print('data:', received_data)
 
-    data = json.loads(received_data)
+            data = json.loads(received_data)
 
-    DID = data['DID']
-    temp = data['temperature']
+            DID = data['DID']
+            temp = data['temperature']
 
-    if is_blacklisted(DID):
-        print('DID is blacklisted')
-        return
+            if is_blacklisted(DID):
+                print('DID is blacklisted')
+                continue
 
-    if DID not in id_dict.values():
-        print('New DID')
-        # Save pending request locally
-        with open("pending_requests.json", "a") as f:
-            f.write(json.dumps(data) + '\n')
-    else:
-        print('Known DID')
-        block_id = find_id(DID)
-        DID_document = retrieve_block_data(block_id)
-        proof_base64 = DID_document['proof']
-        proof_binary = base64.b64decode(proof_base64)
+            if DID not in id_dict.values():
+                print('New DID')
+                # Save pending request locally
+                with open("pending_requests.json", "a") as f:
+                    f.write(json.dumps(data) + '\n')
+            else:
+                print('Known DID')
+                block_id = find_id(DID)
+                DID_document = retrieve_block_data(block_id)
+                proof_base64 = DID_document['proof']
+                proof_binary = base64.b64decode(proof_base64)
 
-        if verify_proof(proof_binary, public_key, DID):
-            print(f'Arduino with {DID} is verified')
-
-            # continue to document for 100 cycles:
-            for i in range(100):
-                append_to_file(DID, temp)
-        else:
-            print(f'Arduino with {DID} is NOT verified')
+                if verify_proof(proof_binary, public_key, DID):
+                    print(f'Arduino with {DID} is verified')
+                    append_to_file(DID, temp)
+                else:
+                    print(f'Arduino with {DID} is NOT verified')
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            # You might want to handle the error here, depending on your requirements
 
 
 def handle_issuer(device_queue, issuer_socket):
