@@ -40,20 +40,19 @@ def send_stored_requests(issuer_socket):
         with open(REQUESTS_FILE, "r") as file:
             requests = json.load(file)
 
-        with open(REQUESTS_FILE, "w") as file:
-            json.dump([], file)
-
         for request in requests:
             issuer_socket.send(json.dumps(request).encode("utf-8"))
-            proof = issuer_socket.recv(1024)
+            proof = issuer_socket.recv(1024).decode("utf-8")
 
-            if proof == b'no':
+            if proof == 'no':
                 add_to_blacklist(request['DID'])
             else:
-                request['DID_doc']['proof'] = proof.decode("utf-8")
+                request['DID_doc']['proof'] = proof
                 request['DID_doc']['publicKey'] = public_key
                 block_id = upload_block(request['DID_doc'])
                 insert_entry(block_id, request['DID'])
+
+        os.remove(REQUESTS_FILE)
 
 
 def handle_device(device_queue):
@@ -129,23 +128,20 @@ def main():
     device_handler_thread = threading.Thread(target=handle_device, args=(device_queue,))
     device_handler_thread.start()
 
-    while True:
-        issuer_socket = None
-        while issuer_socket is None:
-            issuer_socket = connect_to_issuer()
+    issuer_socket = None
 
-        while True:
+    while True:
+        try:
+            if issuer_socket is None:
+                issuer_socket = connect_to_issuer()
+
             device_conn, device_address = device_socket.accept()
             print("Connection from device:", device_address)
             device_queue.put((device_conn, device_address))
 
-            if issuer_socket:
-                try:
-                    issuer_socket.send(b'ping')
-                except (ConnectionRefusedError, socket.error):
-                    issuer_socket = None
-                    break
-
+        except (ConnectionRefusedError, socket.error):
+            issuer_socket = None
+            print("Lost connection to the issuer, retrying...")
 
 if __name__ == "__main__":
     main()
