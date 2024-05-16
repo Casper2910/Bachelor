@@ -72,3 +72,21 @@ def receive_json(socket_obj):
             print(f"Error receiving data: {e}")
             break
     return None
+
+
+def obtain_ip():
+    try:
+        # Create a socket and connect to an external IP (doesn't have to be reachable)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))  # Google DNS server (can be any reachable IP)
+        ip_address = s.getsockname()[0]  # Get the IP address of the local end of the socket
+        s.close()
+        return ip_address
+    except Exception as e:
+        return str(e)
+
+
+# Example usage
+if __name__ == "__main__":
+    ip_address = obtain_ip()
+    print(f"The device IP address is: {ip_address}")
