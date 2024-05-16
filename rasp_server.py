@@ -113,7 +113,7 @@ def main():
 
     # Listen for incoming connections on the device socket
     device_socket.listen(5)
-    print("Device socket listening for connections...")
+    print(f"Device socket listening for connections on {HOST, PORT}...")
 
     # Create a queue to hold incoming device connections
     device_queue = Queue()
