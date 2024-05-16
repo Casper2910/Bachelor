@@ -81,12 +81,6 @@ def main():
     # Display ip and port for the Arduino config
     print(f"Device socket listening for connections on {HOST, PORT}...")
 
-    # Connect to the issuer
-    try:
-        issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
-    except ConnectionRefusedError:
-        print("Issuer is currently unreachable. Pending requests will be saved locally.")
-
     # Bind the device socket to a specific address and port
     device_socket.bind((HOST, PORT))
 
@@ -99,6 +93,17 @@ def main():
     # Start the issuer handler thread
     issuer_handler_thread = threading.Thread(target=handle_issuer, args=(device_queue, issuer_socket))
     issuer_handler_thread.start()
+
+    while True:
+        try:
+            # Connect to the issuer
+            issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
+            print("Connected to the issuer.")
+            break  # Exit the loop if connection successful
+
+        except:
+            print("Issuer is currently unreachable. Pending requests will be saved locally.")
+            break  # Exit the loop if connection refused
 
     while True:
         # Accept connection from device
