@@ -34,7 +34,7 @@ def connect_to_issuer():
             print('Retrying in', RETRY_DELAY, 'seconds...')
             time.sleep(RETRY_DELAY)
 
-def handle_device(device_socket, device_address, issuer_socket):
+def handle_device(device_socket, device_address):
     # Receive data from device
     received_data = device_socket.recv(1024).decode("utf-8").strip()
 
@@ -68,6 +68,18 @@ def handle_device(device_socket, device_address, issuer_socket):
                 # Do something if the field and its content match
                 print('DID doc:', DID_doc)
                 break
+
+        # Attempt to connect to the issuer for authentication
+        issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        while True:
+            try:
+                print('Attempting to connect to issuer...')
+                issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
+                break
+            except Exception as e:
+                print('Error occurred while connecting to the issuer:', e)
+                print('Retrying in', RETRY_DELAY, 'seconds...')
+                time.sleep(RETRY_DELAY)
 
         # Send the DID to the issuer for authentication
         print('Sending DID doc to issuer')
@@ -107,6 +119,7 @@ def handle_device(device_socket, device_address, issuer_socket):
                 append_to_file(DID, temp)
         else:
             print(f'Arduino with {DID} is NOT verified')
+
 
 def main():
     # Create a socket object for device
