@@ -46,7 +46,7 @@ def main():
 
     # Listen for incoming connections
     server_socket.listen(5)
-    print("Server listening for connections...")
+    print("Server listening for connections on", HOST, PORT)
 
     # Create a queue to hold incoming connections
     connection_queue = Queue()
