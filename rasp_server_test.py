@@ -21,7 +21,20 @@ ISSUER_PORT = 8080  # issuer port
 
 RETRY_DELAY = 5  # seconds
 
-def handle_device(device_socket, device_address):
+def connect_to_issuer():
+    # Attempt to connect to the issuer for authentication
+    issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while True:
+        try:
+            print('Attempting to connect to issuer...')
+            issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
+            return issuer_socket
+        except Exception as e:
+            print('Error occurred while connecting to the issuer:', e)
+            print('Retrying in', RETRY_DELAY, 'seconds...')
+            time.sleep(RETRY_DELAY)
+
+def handle_device(device_socket, device_address, issuer_socket):
     # Receive data from device
     received_data = device_socket.recv(1024).decode("utf-8").strip()
 
@@ -55,18 +68,6 @@ def handle_device(device_socket, device_address):
                 # Do something if the field and its content match
                 print('DID doc:', DID_doc)
                 break
-
-        # Attempt to connect to the issuer for authentication
-        issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        while True:
-            try:
-                print('Attempting to connect to issuer...')
-                issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
-                break
-            except Exception as e:
-                print('error: ', e)
-                print('Issuer is down. Retrying in', RETRY_DELAY, 'seconds...')
-                time.sleep(RETRY_DELAY)
 
         # Send the DID to the issuer for authentication
         print('Sending DID doc to issuer')
@@ -107,7 +108,6 @@ def handle_device(device_socket, device_address):
         else:
             print(f'Arduino with {DID} is NOT verified')
 
-
 def main():
     # Create a socket object for device
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -121,13 +121,21 @@ def main():
     # Listen for incoming connections on the device socket
     device_socket.listen(5)
 
+    # Start a thread to connect to the issuer
+    issuer_socket_thread = threading.Thread(target=connect_to_issuer)
+    issuer_socket_thread.start()
+    issuer_socket_thread.join()  # Wait for the issuer connection thread to finish
+
+    # Once the issuer connection is established, get the issuer socket
+    issuer_socket = issuer_socket_thread.result()
+
     while True:
         # Accept connection from device
         device_conn, device_address = device_socket.accept()
         print("Connection from device:", device_address)
 
         # Start a thread to handle the device connection
-        device_thread = threading.Thread(target=handle_device, args=(device_conn, device_address))
+        device_thread = threading.Thread(target=handle_device, args=(device_conn, device_address, issuer_socket))
         device_thread.start()
 
 
