@@ -9,6 +9,7 @@ from iota.block_handler import upload_block, retrieve_block_data
 from keys.keys import public_key
 from data.write import append_to_file
 from connection.connector import send_json, obtain_ip
+from id_dict import id_dict
 
 HOST = obtain_ip()  # own ip
 PORT = 8081  # port
@@ -33,7 +34,6 @@ def connect_to_issuer():
 
 def handle_device(device_socket, device_address):
     while True:
-        from id_dict import id_dict
         try:
             # Receive data from device
             received_data = device_socket.recv(1024).decode("utf-8").strip()
@@ -98,6 +98,7 @@ def handle_device(device_socket, device_address):
                         DID_doc['publicKey'] = public_key
                         block_id = upload_block(DID_doc)
                         insert_entry(block_id, DID)
+                        id_dict[block_id] = DID
                         break
 
 
