@@ -23,8 +23,11 @@ String DID_Document;       // Variable to store the DID document as a JSON strin
 void setup() {
   Serial.begin(9600);
 
-  // Initialize the MKRIoTCarrier
-  carrier.begin();
+  // Retry carrier initialization until it succeeds
+  while (!carrier.begin()) {
+    Serial.println("Failed to initialize MKRIoTCarrier. Retrying...");
+    delay(1000); // Wait before retrying
+  }
 
   connectToWiFi(); // Connect to WiFi network
 
@@ -63,10 +66,10 @@ void loop() {
     // Check if there is any incoming request from the server
     WiFiClient serverClient = wifiServer.available();
     if (serverClient) {
-      String request = serverClient.readStringUntil('\r'); // Read the request
-      Serial.println("Request received: " + request);
+      int request = serverClient.parseInt(); // Read the request as an integer
+      Serial.println("Request received: " + String(request));
 
-      if (request == "request-did-doc") {
+      if (request == 69420) {
         Serial.println("Received request for DID document");
         sendDIDDocument(); // Send the DID document to the server
       }
