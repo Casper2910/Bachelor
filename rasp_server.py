@@ -7,7 +7,6 @@ from keys.Signing import verify_proof
 from block_id_dictonary.write_read_dict import insert_entry, find_id, is_blacklisted, add_to_blacklist
 from iota.block_handler import upload_block, retrieve_block_data
 from keys.keys import public_key
-from id_dict import id_dict
 from data.write import append_to_file
 from connection.connector import send_json, obtain_ip
 
@@ -34,6 +33,7 @@ def connect_to_issuer():
 
 def handle_device(device_socket, device_address):
     while True:
+        from id_dict import id_dict
         try:
             # Receive data from device
             received_data = device_socket.recv(1024).decode("utf-8").strip()

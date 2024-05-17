@@ -23,8 +23,11 @@ String DID_Document;       // Variable to store the DID document as a JSON strin
 void setup() {
   Serial.begin(9600);
 
-  // Initialize the MKRIoTCarrier
-  carrier.begin();
+  // Retry carrier initialization until it succeeds
+  while (!carrier.begin()) {
+    Serial.println("Failed to initialize MKRIoTCarrier. Retrying...");
+    delay(1000); // Wait before retrying
+  }
 
   connectToWiFi(); // Connect to WiFi network
 
