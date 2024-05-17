@@ -27,7 +27,7 @@ def handle_request(queue):
         else:
             response = "no"
             # Send response back to client
-            client_socket.send(response.encode("utf-8"))
+            client_socket.send(response)
 
         print('data send: ', response)
         # Close client socket
