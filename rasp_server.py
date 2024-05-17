@@ -98,8 +98,6 @@ def handle_device(device_socket, device_address):
                         DID_doc['publicKey'] = public_key
                         block_id = upload_block(DID_doc)
                         insert_entry(block_id, DID)
-                        # add the entry to the local dict in memory
-                        id_dict[block_id] = DID
                         break
 
 
