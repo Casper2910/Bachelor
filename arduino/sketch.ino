@@ -63,10 +63,10 @@ void loop() {
     // Check if there is any incoming request from the server
     WiFiClient serverClient = wifiServer.available();
     if (serverClient) {
-      String request = serverClient.readStringUntil('\r'); // Read the request
-      Serial.println("Request received: " + request);
+      int request = serverClient.parseInt(); // Read the request as an integer
+      Serial.println("Request received: " + String(request));
 
-      if (request == "request-did-doc") {
+      if (request == 69420) {
         Serial.println("Received request for DID document");
         sendDIDDocument(); // Send the DID document to the server
       }
