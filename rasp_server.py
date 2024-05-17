@@ -86,9 +86,9 @@ def handle_device(device_socket, device_address):
                 while True:
                     print('Awaiting issuer\'s signature...')
                     # Receive data from the issuer
-                    proof = issuer_socket.recv(1024).decode("utf-8")
+                    proof = issuer_socket.recv(1024)
 
-                    if proof == 'no':
+                    if proof == b'no':
                         print('DID has been blacklisted')
                         add_to_blacklist(DID)
                         break
