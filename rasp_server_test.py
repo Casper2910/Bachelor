@@ -3,8 +3,6 @@ import threading
 import base64
 import json
 import time
-import random
-from queue import Queue
 from keys.Signing import verify_proof
 from block_id_dictonary.write_read_dict import insert_entry, find_id, is_blacklisted, add_to_blacklist
 from iota.block_handler import upload_block, retrieve_block_data
@@ -35,13 +33,14 @@ def connect_to_issuer():
             time.sleep(RETRY_DELAY)
 
 def handle_device(device_socket, device_address):
+    # Attempt to connect to the issuer for authentication
+    issuer_socket = connect_to_issuer()
+
     # Receive data from device
     received_data = device_socket.recv(1024).decode("utf-8").strip()
-
     print('data:', received_data)
 
     data = json.loads(received_data)
-
     DID = data['DID']
     temp = data['temperature']
 
@@ -65,34 +64,19 @@ def handle_device(device_socket, device_address):
 
             if "proof" in received_json:
                 DID_doc = received_json
-                # Do something if the field and its content match
                 print('DID doc:', DID_doc)
                 break
-
-        # Attempt to connect to the issuer for authentication
-        issuer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        while True:
-            try:
-                print('Attempting to connect to issuer...')
-                issuer_socket.connect((ISSUER_HOST, ISSUER_PORT))
-                break
-            except Exception as e:
-                print('Error occurred while connecting to the issuer:', e)
-                print('Retrying in', RETRY_DELAY, 'seconds...')
-                time.sleep(RETRY_DELAY)
 
         # Send the DID to the issuer for authentication
         print('Sending DID doc to issuer')
         issuer_socket.send(DID.encode("utf-8"))
 
         while True:
-            print('Awaiting issuers signature...')
+            print('Awaiting issuer\'s signature...')
             # Receive data from the issuer
             proof = issuer_socket.recv(1024)
 
-            # Example: Check if the received data from the issuer matches a specific condition
             if proof == 'no':
-                # add to blacklist
                 print('DID has been blacklisted')
                 add_to_blacklist(DID)
                 break
@@ -120,7 +104,6 @@ def handle_device(device_socket, device_address):
         else:
             print(f'Arduino with {DID} is NOT verified')
 
-
 def main():
     # Create a socket object for device
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -134,23 +117,14 @@ def main():
     # Listen for incoming connections on the device socket
     device_socket.listen(5)
 
-    # Start a thread to connect to the issuer
-    issuer_socket_thread = threading.Thread(target=connect_to_issuer)
-    issuer_socket_thread.start()
-    issuer_socket_thread.join()  # Wait for the issuer connection thread to finish
-
-    # Once the issuer connection is established, get the issuer socket
-    issuer_socket = issuer_socket_thread.result()
-
     while True:
         # Accept connection from device
         device_conn, device_address = device_socket.accept()
         print("Connection from device:", device_address)
 
         # Start a thread to handle the device connection
-        device_thread = threading.Thread(target=handle_device, args=(device_conn, device_address, issuer_socket))
+        device_thread = threading.Thread(target=handle_device, args=(device_conn, device_address))
         device_thread.start()
-
 
 if __name__ == "__main__":
     main()
