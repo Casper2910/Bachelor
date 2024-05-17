@@ -23,7 +23,7 @@ def handle_request(queue):
             proof = sign_proof(DID, private_key, public_key)
             response = proof
             # Send response back to client
-            client_socket.send(response.encode("utf-8"))
+            client_socket.send(response)
         else:
             response = "no"
             # Send response back to client
