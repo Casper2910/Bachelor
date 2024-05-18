@@ -48,7 +48,11 @@ def handle_device(device_socket, device_address):
 
             if is_blacklisted(DID):
                 print('DID is blacklisted')
-                continue
+                break
+
+            if not DID.startswith('did:iota:test'):
+                print('Does not contain relevant did')
+                break
 
             if DID not in id_dict.values():
                 print('New DID')
@@ -100,7 +104,6 @@ def handle_device(device_socket, device_address):
                         insert_entry(block_id, DID)
                         id_dict[block_id] = DID
                         break
-
 
             if DID in id_dict.values():
                 print('Known DID')
