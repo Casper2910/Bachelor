@@ -117,6 +117,7 @@ def handle_device(device_socket, device_address):
                     append_to_file(DID, temp)
                 else:
                     print(f'Arduino with {DID} is NOT verified')
+                    break
 
         except (socket.error, json.JSONDecodeError) as e:
             print(f"Error: {e}. Restarting connection handling.")
