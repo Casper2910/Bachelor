@@ -61,17 +61,46 @@ void setup() {
 }
 
 void loop() {
-
+  // n value controls how many did and did documents that needs to be created at the same time
+  if (n_increment%1000 == 0){
+    if (n = 1){
+      n = 10
+    }else{
+      n = n + 10
+    }
+  }
 
   s1 = micros();
+  int i = 0;
+  while (i < n){
   // Generate DID
   DeviceID = "";
   getDeviceID();
   DID = "did:iota:test" + DeviceID;
+  i++;
+  }
   e1 = micros();
 
   // Generate DID Document
+  s2 = micros();
+  i = 0;
+  while (i < n){
   generateDIDDocument();
+  i++;
+  }
+  e2 = micros();
+
+  time2 = e2 - s2
+
+  s4 = micros();
+  i = 0;
+  while (i < n){
+  // Serialize JSON object to a string
+  serializeJson(jsonDocument, DID_Document);
+  i++;
+  }
+  e4 = micros();
+  time4 = e4 - s4;
 
   if (client.connected()) {
     Serial.println("CONNECTED");
@@ -85,8 +114,12 @@ void loop() {
 
     // measure time to serialize JSON object to a string
     s3 = micros();
+    i = 0;
+    while (i < n){
     String jsonData;
     serializeJson(jsonDID, jsonData);
+    i++;
+    }
     e3 = micros();
 
     // serialize and send
@@ -94,6 +127,7 @@ void loop() {
     jsonDID["did_doc_time"] = time2;
     jsonDID["serializeDID"] = e3 - s3;
     jsonDID["serializeDID_doc"] = time4;
+    jsonDID["n"] = n;
     serializeJson(jsonDID, jsonData);
 
     Serial.println("jsonData: " + jsonData);
@@ -115,7 +149,7 @@ void loop() {
       serverClient.stop(); // Close the connection with the server
     }
 
-    delay(2000); // Wait before sending next data
+    delay(100); // Wait before sending next data
   } else {
     Serial.println("NOT CONNECTED");
     if (!connectToServer()) {
@@ -164,7 +198,6 @@ void getDeviceID() {
 
 void generateDIDDocument() {
   // Create a JSON object for DID document
-  s2 = micros();
   StaticJsonDocument<200> jsonDocument;
   jsonDocument["@context"] = "https://w3id.org/security/suites/ed25519-2020/v1";
   jsonDocument["id"] = DID;
@@ -178,14 +211,7 @@ void generateDIDDocument() {
   verificationMethod["type"] = "Ed25519VerificationKey2018";
   verificationMethod["controller"] = "did:iota:root";
   verificationMethod["publicKey"] = ""; // Add the actual public key if available
-  e2 = micros();
-  time2 = e2 - s2;
 
-  s4 = micros();
-  // Serialize JSON object to a string
-  serializeJson(jsonDocument, DID_Document);
-  e4 = micros();
-  time4 = e4 - s4;
 }
 
 void sendDIDDocument() {

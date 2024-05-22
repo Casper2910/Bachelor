@@ -1,3 +1,4 @@
+import os
 import socket
 import threading
 import base64
@@ -28,13 +29,21 @@ This code is an adjustment of the rasp_server.py to test the perfomance of each 
 
 def document_data(file_name, data):
     try:
+        # Check if the file exists
+        file_exists = os.path.isfile(file_name)
+
         # Open the CSV file in append mode
         with open(file_name, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
+
+            # If the file does not exist, write the header (optional)
+            if not file_exists:
+                writer.writerow(['Data'])
+
             # Write the data to the CSV file
             writer.writerow([data])
     except Exception as e:
-        print(e)
+        print(f"An error occurred: {e}")
 
 
 def connect_to_issuer():
@@ -62,10 +71,10 @@ def handle_device(device_socket, device_address):
             data = json.loads(received_data)
             DID = data['DID']
             temp = data['temperature']
-            document_data("test/did.csv", data['did_time'])
-            document_data("test/did_doc.csv", data['did_doc_time'])
-            document_data("test/serializeDID.csv", data['serializeDID'])
-            document_data("test/serializeDID_doc.csv", data['serializeDID_doc'])
+            document_data(f"test/did_{data['n']}.csv", data['did_time'])
+            document_data(f"test/did_doc_{data['n']}.csv", data['did_doc_time'])
+            document_data(f"test/serializeDID_{data['n']}.csv", data['serializeDID'])
+            document_data(f"test/serializeDID_doc_{data['n']}.csv", data['serializeDID_doc'])
 
             if is_blacklisted(DID):
                 print('DID is blacklisted')
@@ -128,6 +137,9 @@ def handle_device(device_socket, device_address):
 
             if DID in id_dict.values():
                 print('Known DID')
+
+                # timing verification process
+                start = time.time()
                 block_id = find_id(DID)
                 DID_document = retrieve_block_data(block_id)
                 proof_base64 = DID_document['proof']
@@ -139,6 +151,10 @@ def handle_device(device_socket, device_address):
                 else:
                     print(f'Arduino with {DID} is NOT verified')
                     break
+                end = time.time()
+
+                document_data("test/vc.csv", end - start)
+
 
         except (socket.error, json.JSONDecodeError) as e:
             print(f"Error: {e}. Restarting connection handling.")
