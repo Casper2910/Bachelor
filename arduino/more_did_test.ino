@@ -39,7 +39,6 @@ unsigned long e4;
 unsigned long time2; // e2 - s2
 unsigned long time4; // e4 - s4
 
-int n_increment = 1;
 int n = 1;
 
 StaticJsonDocument<200> jsonDocument; // Declare the jsonDocument here to reuse it
@@ -62,14 +61,6 @@ void setup() {
 }
 
 void loop() {
-  // n value controls how many did and did documents that needs to be created at the same time
-  if (n_increment % 1000 == 0) {
-    if (n == 1) {
-      n = 10;
-    } else {
-      n = n + 10;
-    }
-  }
 
   s1 = micros();
   int i = 0;
@@ -135,7 +126,6 @@ void loop() {
 
     // Send JSON string to server
     client.print(jsonData);
-    n_increment++;
 
     // Check if there is any incoming request from the server
     WiFiClient serverClient = wifiServer.available();

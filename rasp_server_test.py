@@ -46,6 +46,16 @@ def document_data(file_name, data):
         print(f"An error occurred: {e}")
 
 
+def csv_len(file_path):
+    try:
+        with open(file_path, mode='r', newline='') as file:
+            reader = csv.reader(file)
+            row_count = sum(1 for row in reader)
+        return row_count
+    except Exception as e:
+        print(f"An error occurred while reading the file: {e}")
+        return None
+
 def connect_to_issuer():
     try:
         print('Attempting to connect to issuer...')
@@ -75,6 +85,10 @@ def handle_device(device_socket, device_address):
             document_data(f"test/did_doc_{data['n']}.csv", data['did_doc_time'])
             document_data(f"test/serializeDID_{data['n']}.csv", data['serializeDID'])
             document_data(f"test/serializeDID_doc_{data['n']}.csv", data['serializeDID_doc'])
+
+            if csv_len(f"test/did_{data['n']}.csv") >= 1000:
+                print(f"Rows for {data['n']} DIDs pr. device has reached 1000")
+                exit()
 
             if is_blacklisted(DID):
                 print('DID is blacklisted')
