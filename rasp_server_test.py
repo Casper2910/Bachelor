@@ -29,16 +29,9 @@ This code is an adjustment of the rasp_server.py to test the perfomance of each 
 
 def document_data(file_name, data):
     try:
-        # Check if the file exists
-        file_exists = os.path.isfile(file_name)
-
-        # Open the CSV file in append mode
+        # Open the CSV file in append mode, creating it if it doesn't exist
         with open(file_name, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
-
-            # If the file does not exist, write the header (optional)
-            if not file_exists:
-                writer.writerow(['Data'])
 
             # Write the data to the CSV file
             writer.writerow([data])
