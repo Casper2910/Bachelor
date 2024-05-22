@@ -56,6 +56,7 @@ def csv_len(file_path):
         print(f"An error occurred while reading the file: {e}")
         return None
 
+
 def connect_to_issuer():
     try:
         print('Attempting to connect to issuer...')
