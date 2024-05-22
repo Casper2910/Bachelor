@@ -63,7 +63,7 @@ def handle_device(device_socket, device_address):
             DID = data['DID']
             temp = data['temperature']
             document_data("test/did.csv", data['did_time'])
-            document_data("test/did_doc.csv", data['did_time'])
+            document_data("test/did_doc.csv", data['did_doc_time'])
             document_data("test/serializeDID.csv", data['serializeDID'])
             document_data("test/serializeDID_doc.csv", data['serializeDID_doc'])
 
