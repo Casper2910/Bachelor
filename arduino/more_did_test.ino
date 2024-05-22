@@ -42,6 +42,7 @@ unsigned long time4; // e4 - s4
 int n_increment = 1;
 int n = 1;
 
+StaticJsonDocument<200> jsonDocument; // Declare the jsonDocument here to reuse it
 
 void setup() {
   Serial.begin(9600);
@@ -62,49 +63,48 @@ void setup() {
 
 void loop() {
   // n value controls how many did and did documents that needs to be created at the same time
-  if (n_increment%1000 == 0){
-    if (n = 1){
-      n = 10
-    }else{
-      n = n + 10
+  if (n_increment % 1000 == 0) {
+    if (n == 1) {
+      n = 10;
+    } else {
+      n = n + 10;
     }
   }
 
   s1 = micros();
   int i = 0;
-  while (i < n){
-  // Generate DID
-  DeviceID = "";
-  getDeviceID();
-  DID = "did:iota:test" + DeviceID;
-  i++;
+  while (i < n) {
+    // Generate DID
+    DeviceID = "";
+    getDeviceID();
+    DID = "did:iota:test" + DeviceID;
+    i++;
   }
   e1 = micros();
 
   // Generate DID Document
   s2 = micros();
   i = 0;
-  while (i < n){
-  generateDIDDocument();
-  i++;
+  while (i < n) {
+    generateDIDDocument();
+    i++;
   }
   e2 = micros();
 
-  time2 = e2 - s2
+  time2 = e2 - s2;
 
   s4 = micros();
   i = 0;
-  while (i < n){
-  // Serialize JSON object to a string
-  serializeJson(jsonDocument, DID_Document);
-  i++;
+  while (i < n) {
+    // Serialize JSON object to a string
+    serializeJson(jsonDocument, DID_Document);
+    i++;
   }
   e4 = micros();
   time4 = e4 - s4;
 
   if (client.connected()) {
     Serial.println("CONNECTED");
-
 
     // Create a JSON object for sending data
     StaticJsonDocument<100> jsonDID;
@@ -115,10 +115,10 @@ void loop() {
     // measure time to serialize JSON object to a string
     s3 = micros();
     i = 0;
-    while (i < n){
-    String jsonData;
-    serializeJson(jsonDID, jsonData);
-    i++;
+    while (i < n) {
+      String jsonData;
+      serializeJson(jsonDID, jsonData);
+      i++;
     }
     e3 = micros();
 
@@ -128,12 +128,14 @@ void loop() {
     jsonDID["serializeDID"] = e3 - s3;
     jsonDID["serializeDID_doc"] = time4;
     jsonDID["n"] = n;
+    String jsonData;
     serializeJson(jsonDID, jsonData);
 
     Serial.println("jsonData: " + jsonData);
 
     // Send JSON string to server
     client.print(jsonData);
+    n_increment++;
 
     // Check if there is any incoming request from the server
     WiFiClient serverClient = wifiServer.available();
@@ -198,7 +200,7 @@ void getDeviceID() {
 
 void generateDIDDocument() {
   // Create a JSON object for DID document
-  StaticJsonDocument<200> jsonDocument;
+  jsonDocument.clear(); // Clear the document before reuse
   jsonDocument["@context"] = "https://w3id.org/security/suites/ed25519-2020/v1";
   jsonDocument["id"] = DID;
   jsonDocument["controller"] = "did:iota:root";
@@ -211,7 +213,6 @@ void generateDIDDocument() {
   verificationMethod["type"] = "Ed25519VerificationKey2018";
   verificationMethod["controller"] = "did:iota:root";
   verificationMethod["publicKey"] = ""; // Add the actual public key if available
-
 }
 
 void sendDIDDocument() {
