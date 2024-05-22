@@ -22,13 +22,6 @@ String DID_Document;       // Variable to store the DID document as a JSON strin
 
 /*
 This sketch is a test variant of the original to test performance of the DID and DID document generation.
-Measuring actions in microsecounds
-measuring points are:
-
-did generation
-did doc generation
-serialization of DID json
-serialization of DID doc json
 */
 
 unsigned long s1; // creating did
@@ -91,13 +84,6 @@ void loop() {
     String jsonData;
     serializeJson(jsonDID, jsonData);
     e3 = micros();
-
-    Serial.print("_____")
-    Serial.print(e1-s1);
-    Serial.print(time2);
-    Serial.print(e3-s3);
-    Serial.print(time4);
-    Serial.print("_____")
 
     // serialize and send
     jsonDID["did_time"] = e1 - s1;
@@ -202,4 +188,4 @@ void sendDIDDocument() {
   // Send the DID document to the server
   client.print(DID_Document);
   Serial.println("Sent DID document to server: " + DID_Document);
-}
+}}
