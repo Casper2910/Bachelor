@@ -7,7 +7,7 @@ char ssid[] = "wifi";       // your network SSID (name)
 char pass[] = "pass";    // your network password
 int status = WL_IDLE_STATUS;    // the WiFi status
 
-IPAddress server(192, 168, 0, 155); // IP address of the target device
+IPAddress server(192, 168, 0, 103); // IP address of the target device
 int serverPort = 8081;              // port of the target device
 int listenPort = 8082;              // port to listen for incoming requests
 
@@ -22,6 +22,13 @@ String DID_Document;       // Variable to store the DID document as a JSON strin
 
 /*
 This sketch is a test variant of the original to test performance of the DID and DID document generation.
+Measuring actions in microsecounds
+measuring points are:
+
+did generation
+did doc generation
+serialization of DID json
+serialization of DID doc json
 */
 
 unsigned long s1; // creating did
@@ -36,8 +43,8 @@ unsigned long e3;
 unsigned long s4; // serialize did document
 unsigned long e4;
 
-unsigned long time2 // e2 - s2
-unsigned long time4 // e4 - s4
+unsigned long time2; // e2 - s2
+unsigned long time4; // e4 - s4
 
 
 void setup() {
@@ -59,11 +66,12 @@ void setup() {
 
 void loop() {
 
-  s1 = millis();
+  s1 = micros();
   // Generate DID
+  DeviceID = "";
   getDeviceID();
   DID = "did:iota:test" + DeviceID;
-  e1 = millis();
+  e1 = micros();
 
   // Generate DID Document
   generateDIDDocument();
@@ -79,10 +87,17 @@ void loop() {
     jsonDID["temperature"] = temp;
 
     // measure time to serialize JSON object to a string
-    s3 = millis();
+    s3 = micros();
     String jsonData;
     serializeJson(jsonDID, jsonData);
-    e3 = millis();
+    e3 = micros();
+
+    Serial.print("_____")
+    Serial.print(e1-s1);
+    Serial.print(time2);
+    Serial.print(e3-s3);
+    Serial.print(time4);
+    Serial.print("_____")
 
     // serialize and send
     jsonDID["did_time"] = e1 - s1;
@@ -159,7 +174,7 @@ void getDeviceID() {
 
 void generateDIDDocument() {
   // Create a JSON object for DID document
-  s2 = millis();
+  s2 = micros();
   StaticJsonDocument<200> jsonDocument;
   jsonDocument["@context"] = "https://w3id.org/security/suites/ed25519-2020/v1";
   jsonDocument["id"] = DID;
@@ -173,13 +188,13 @@ void generateDIDDocument() {
   verificationMethod["type"] = "Ed25519VerificationKey2018";
   verificationMethod["controller"] = "did:iota:root";
   verificationMethod["publicKey"] = ""; // Add the actual public key if available
-  e2 = millis();
+  e2 = micros();
   time2 = e2 - s2;
 
-  s4 = millis();
+  s4 = micros();
   // Serialize JSON object to a string
   serializeJson(jsonDocument, DID_Document);
-  e4 = millis();
+  e4 = micros();
   time4 = e4 - s4;
 }
 
