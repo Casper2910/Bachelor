@@ -29,6 +29,13 @@ This code is an adjustment of the rasp_server.py to test the perfomance of each 
 
 def document_data(file_name, data):
     try:
+        # Extract directory path
+        directory = os.path.dirname(file_name)
+
+        # Check if directory exists, create if not
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
         # Open the CSV file in append mode, creating it if it doesn't exist
         with open(file_name, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
