@@ -64,6 +64,22 @@ did_doc_values = [did_doc1 / 1000, did_doc10 / 1000, did_doc20 / 1000, did_doc40
 did_ser_values = [did_ser1 / 1000, did_ser10 / 1000, did_ser20 / 1000, did_ser40 / 1000, did_ser60 / 1000, did_ser80 / 1000, did_ser100 / 1000]
 did_doc_ser_values = [did_doc_ser1 / 1000, did_doc_ser10 / 1000, did_doc_ser20 / 1000, did_doc_ser40 / 1000, did_doc_ser60 / 1000, did_doc_ser80 / 1000, did_doc_ser100 / 1000]
 
+print("did_values")
+for did in did_values:
+    print(did)
+
+print("did_doc_values")
+for did in did_doc_values:
+    print(did)
+
+print("did_ser_values")
+for did in did_ser_values:
+    print(did)
+
+print("did_doc_ser_values")
+for did in did_doc_ser_values:
+    print(did)
+
 # Sample data for boxplot
 vc_data = []
 with open('test/vc.csv', 'r') as file:

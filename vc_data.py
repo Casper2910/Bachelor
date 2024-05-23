@@ -10,6 +10,9 @@ with open('test/vc.csv', 'r') as file:
         float_value = float(row[0])
         vc_data.append(float_value)
 
+print("average: ", np.average(vc_data))
+print("mean: ", np.mean(vc_data))
+
 fig = plt.figure(figsize =(12, 6))
 
 plt.boxplot(vc_data, vert=False)
