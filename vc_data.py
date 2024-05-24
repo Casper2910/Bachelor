@@ -11,7 +11,7 @@ with open('test/vc.csv', 'r') as file:
         vc_data.append(float_value)
 
 print("average: ", np.average(vc_data))
-print("mean: ", np.mean(vc_data))
+print("median: ", np.median(vc_data))
 
 fig = plt.figure(figsize =(12, 6))
 
